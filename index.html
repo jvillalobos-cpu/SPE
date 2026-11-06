@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SPE · Sistema de Producción Estadística</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --ink: #1d2330; --muted: #6b7385;
+    --line: #d9dde5; --accent: #2f6fdf; --trend: #d9822b; --ok: #2e9e6a;
+    --warn: #d9a12b; --bad: #d64545; --station: #eef1f6; --hatch: #9aa3b5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --panel: #1b2029; --ink: #e6e9ef; --muted: #8d95a8;
+      --line: #2e3542; --accent: #6b9cff; --trend: #f0a35a; --ok: #4cc28d;
+      --warn: #e8bb52; --bad: #ef6b6b; --station: #232a36; --hatch: #5b6478;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --panel: #1b2029; --ink: #e6e9ef; --muted: #8d95a8;
+    --line: #2e3542; --accent: #6b9cff; --trend: #f0a35a; --ok: #4cc28d;
+    --warn: #e8bb52; --bad: #ef6b6b; --station: #232a36; --hatch: #5b6478;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .app { max-width: 1200px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  h2 { margin: 0 0 10px; font-size: 13px; font-weight: 600; text-transform: uppercase;
+       letter-spacing: .04em; color: var(--muted); }
+
+  /* ---------- Fila superior: plano + reloj ---------- */
+  .top { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+  #plano { width: 100%; height: auto; display: block; }
+  .clock-panel { display: grid; gap: 12px; justify-items: center; text-align: center; }
+  #clock { width: 120px; height: 120px; }
+  .status-box { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .status-box .big { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .status-box .small { color: var(--muted); font-size: 12px; }
+
+  /* ---------- KPIs ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .kpi .label { color: var(--muted); font-size: 12px; }
+  .kpi .value { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .kpi .hint { color: var(--muted); font-size: 11px; }
+
+  /* ---------- Tabla ---------- */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .pill.ok { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
+  .pill.warn { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
+  .pill.bad { background: color-mix(in srgb, var(--bad) 20%, transparent); color: var(--bad); }
+
+  /* ---------- Gráfica ---------- */
+  #chart { width: 100%; height: 260px; display: block; }
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 5px; }
+
+  @media (max-width: 820px) {
+    .top { grid-template-columns: 1fr; }
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 1. Plano de producción + reloj -->
+  <section class="top">
+    <div class="panel">
+      <h2>Plano de producción</h2>
+      <svg id="plano" viewBox="0 0 640 420" role="img" aria-label="Plano de la cocina"></svg>
+    </div>
+    <div class="panel clock-panel">
+      <h2>Reloj de turno</h2>
+      <svg id="clock" viewBox="0 0 100 100" aria-label="Reloj"></svg>
+      <div class="status-box">
+        <div class="big" id="clockText">--:--:--</div>
+        <div class="small" id="turnoText">—</div>
+        <div class="small" id="horaSelText">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Indicadores -->
+  <section class="kpis" id="kpis"></section>
+
+  <!-- 3. Tabla -->
+  <section class="panel">
+    <h2>Detalle por hora <span style="text-transform:none;font-weight:400">(clic en una fila para verla en el plano)</span></h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Hora</th><th>Pedidos</th><th>λ esperada</th><th>Utilización ρ</th><th>P(espera)</th><th>Espera Wq</th><th>Estado</th></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 4. Gráfica de tendencia -->
+  <section class="panel">
+    <h2>Pedidos por hora y tendencia</h2>
+    <svg id="chart" viewBox="0 0 1000 260" preserveAspectRatio="none"></svg>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>Pedidos observados</span>
+      <span><i style="background:var(--trend)"></i>Tendencia lineal (mínimos cuadrados)</span>
+      <span><i style="background:var(--muted)"></i>Media móvil (3 h)</span>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* =====================================================================
+   SPE · Sistema de Producción Estadística — esqueleto v0.1
+   ===================================================================== */
+
+// ---------- Parámetros (se ampliarán en siguientes iteraciones) ----------
+const CONFIG = {
+  horaInicio: 8,          // 08:00
+  horaFin: 22,            // 22:00
+  cajas: 2,               // servidores (c) en el modelo de colas
+  mu: 30,                 // pedidos que atiende una caja por hora
+  lambdaBase: 18,         // llegadas base por hora
+  picos: [                // picos de demanda (gaussianos)
+    { hora: 14, altura: 30, ancho: 1.3 },   // comida
+    { hora: 20, altura: 24, ancho: 1.5 },   // cena
+  ],
+  semilla: 42,
+};
+
+// ---------- Utilidades estadísticas ----------
+const Stats = {
+  // Generador pseudoaleatorio con semilla (mulberry32), para resultados reproducibles
+  rng(seed) {
+    return () => {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  },
+  // Muestra Poisson (algoritmo de Knuth; suficiente para λ < ~100)
+  poisson(lambda, rand) {
+    const L = Math.exp(-lambda); let k = 0, p = 1;
+    do { k++; p *= rand(); } while (p > L);
+    return k - 1;
+  },
+  factorial(n) { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; },
+  // Erlang C: probabilidad de que un pedido tenga que esperar en un sistema M/M/c
+  erlangC(lambda, mu, c) {
+    const a = lambda / mu, rho = a / c;
+    if (rho >= 1) return 1;
+    let sum = 0;
+    for (let k = 0; k < c; k++) sum += Math.pow(a, k) / this.factorial(k);
+    const top = Math.pow(a, c) / this.factorial(c) * (1 / (1 - rho));
+    return top / (sum + top);
+  },
+  // Métricas M/M/c: ρ, P(espera), Lq, Wq (minutos)
+  mmc(lambda, mu, c) {
+    const rho = lambda / (c * mu);
+    if (rho >= 1) return { rho, pw: 1, lq: Infinity, wq: Infinity };
+    const pw = this.erlangC(lambda, mu, c);
+    const wqH = pw / (c * mu - lambda);
+    return { rho, pw, lq: lambda * wqH, wq: wqH * 60 };
+  },
+  // Regresión lineal por mínimos cuadrados: y = a + b·x, con R²
+  linreg(xs, ys) {
+    const n = xs.length, mx = xs.reduce((s, v) => s + v, 0) / n, my = ys.reduce((s, v) => s + v, 0) / n;
+    let sxy = 0, sxx = 0, syy = 0;
+    for (let i = 0; i < n; i++) {
+      sxy += (xs[i] - mx) * (ys[i] - my); sxx += (xs[i] - mx) ** 2; syy += (ys[i] - my) ** 2;
+    }
+    const b = sxx ? sxy / sxx : 0, a = my - b * mx;
+    const r2 = sxx && syy ? (sxy * sxy) / (sxx * syy) : 0;
+    return { a, b, r2, predict: x => a + b * x };
+  },
+  movingAvg(ys, w) {
+    return ys.map((_, i) => {
+      const s = ys.slice(Math.max(0, i - w + 1), i + 1);
+      return s.reduce((t, v) => t + v, 0) / s.length;
+    });
+  },
+};
+
+// ---------- Generación de datos (simulación) ----------
+function lambdaHora(h) {
+  let l = CONFIG.lambdaBase;
+  for (const p of CONFIG.picos) l += p.altura * Math.exp(-((h - p.hora) ** 2) / (2 * p.ancho ** 2));
+  return l;
+}
+
+function simular() {
+  const rand = Stats.rng(CONFIG.semilla);
+  const filas = [];
+  for (let h = CONFIG.horaInicio; h < CONFIG.horaFin; h++) {
+    const lam = lambdaHora(h + 0.5);
+    const pedidos = Stats.poisson(lam, rand);
+    const q = Stats.mmc(pedidos, CONFIG.mu, CONFIG.cajas);
+    filas.push({ hora: h, lambda: lam, pedidos, ...q });
+  }
+  return filas;
+}
+
+// ---------- Helpers de formato / SVG ----------
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const hh = h => String(h).padStart(2, '0') + ':00';
+const pct = v => (v * 100).toFixed(1) + '%';
+const minutos = v => isFinite(v) ? v.toFixed(1) + ' min' : '∞';
+function estado(rho) {
+  if (rho >= 1) return { cls: 'bad', txt: 'Saturado', color: 'var(--bad)' };
+  if (rho >= 0.8) return { cls: 'warn', txt: 'Alta carga', color: 'var(--warn)' };
+  return { cls: 'ok', txt: 'Estable', color: 'var(--ok)' };
+}
+
+// ---------- 1. Plano de producción ----------
+function dibujarPlano(fila) {
+  const svg = $('plano'); svg.innerHTML = '';
+  const st = estado(fila.rho);
+
+  const defs = el('defs', {}, svg);
+  const pat = el('pattern', { id: 'hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' }, defs);
+  el('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: 'var(--hatch)', 'stroke-width': 3 }, pat);
+  const mk = el('marker', { id: 'arrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
+  el('path', { d: 'M0,0 L10,5 L0,10 z', fill: 'var(--muted)' }, mk);
+
+  // Zona de cocina (punteada)
+  el('rect', { x: 10, y: 10, width: 260, height: 400, rx: 6, fill: 'none', stroke: 'var(--line)', 'stroke-width': 2, 'stroke-dasharray': '8 6' }, svg);
+  label(svg, 'COCINA', 140, 402, 10, 'var(--muted)');
+
+  // Estaciones: carga proporcional a la utilización de la hora seleccionada
+  estacion(svg, 'Freidora', 24, 24, 90, 80, fila.rho * 0.9);
+  estacion(svg, 'Parrilla 1', 40, 130, 190, 120, fila.rho);
+  estacion(svg, 'Parrilla 2', 40, 268, 190, 120, fila.rho * 0.85);
+
+  // Flujo de producto (punteado) hacia la barra
+  el('path', { d: 'M114,60 L290,60', fill: 'none', stroke: 'var(--muted)', 'stroke-dasharray': '5 5', 'marker-end': 'url(#arrow)' }, svg);
+  el('path', { d: 'M230,190 L285,190', fill: 'none', stroke: 'var(--muted)', 'stroke-dasharray': '5 5', 'marker-end': 'url(#arrow)' }, svg);
+  el('path', { d: 'M230,328 L285,328', fill: 'none', stroke: 'var(--muted)', 'stroke-dasharray': '5 5', 'marker-end': 'url(#arrow)' }, svg);
+
+  // Barra / mostrador con extremos rayados
+  el('rect', { x: 292, y: 10, width: 36, height: 400, fill: 'var(--station)', stroke: 'var(--ink)', 'stroke-width': 1.5 }, svg);
+  el('rect', { x: 292, y: 10, width: 36, height: 40, fill: 'url(#hatch)', stroke: 'var(--ink)', 'stroke-width': 1.5 }, svg);
+  el('rect', { x: 292, y: 370, width: 36, height: 40, fill: 'url(#hatch)', stroke: 'var(--ink)', 'stroke-width': 1.5 }, svg);
+
+  // Cajas
+  const cajasY = [130, 240];
+  cajasY.forEach((y, i) => {
+    const g = el('g', {}, svg);
+    el('rect', { x: 286, y, width: 48, height: 42, rx: 4, fill: 'var(--panel)', stroke: st.color, 'stroke-width': 2.5 }, g);
+    label(g, 'Caja ' + (i + 1), 310, y + 25, 11, 'var(--ink)');
+    el('path', { d: `M400,${y + 21} L340,${y + 21}`, stroke: 'var(--muted)', 'stroke-width': 1.5, fill: 'none', 'marker-end': 'url(#arrow)' }, svg);
+  });
+
+  // Fila de clientes: tamaño = Lq (longitud esperada de cola), tope visual de 8
+  const lq = isFinite(fila.lq) ? fila.lq : 99;
+  const n = Math.min(8, Math.max(1, Math.round(lq) + 1));
+  for (let i = 0; i < n; i++) {
+    const x = 420 + (i % 2) * 40, y = 160 + Math.floor(i / 2) * 55;
+    persona(svg, x, y, i === 0 ? 'var(--accent)' : 'var(--muted)');
+  }
+  el('path', { d: 'M440,150 L440,395', stroke: 'var(--line)', 'stroke-dasharray': '2 6', 'stroke-width': 2 }, svg);
+  label(svg, `Fila esperada Lq ≈ ${isFinite(fila.lq) ? fila.lq.toFixed(2) : '∞'}`, 400, 40, 13, 'var(--ink)', 'start', 600);
+  label(svg, `${hh(fila.hora)} · ρ = ${pct(fila.rho)} · P(espera) = ${pct(fila.pw)}`, 400, 60, 11, 'var(--muted)', 'start');
+  label(svg, 'CLIENTES', 440, 402, 10, 'var(--muted)');
+}
+
+function estacion(svg, nombre, x, y, w, h, carga) {
+  const c = Math.min(carga, 1);
+  const color = carga >= 1 ? 'var(--bad)' : carga >= 0.8 ? 'var(--warn)' : 'var(--ok)';
+  el('rect', { x, y, width: w, height: h, rx: 8, fill: 'var(--station)', stroke: 'var(--ink)', 'stroke-width': 1.5 }, svg);
+  // Barra de carga en la base de la estación
+  el('rect', { x: x + 8, y: y + h - 16, width: w - 16, height: 6, rx: 3, fill: 'var(--line)' }, svg);
+  el('rect', { x: x + 8, y: y + h - 16, width: (w - 16) * c, height: 6, rx: 3, fill: color }, svg);
+  label(svg, nombre, x + w / 2, y + h / 2 - 2, 13, 'var(--ink)', 'middle', 600);
+  label(svg, pct(carga), x + w / 2, y + h / 2 + 15, 11, 'var(--muted)');
+}
+
+function persona(svg, x, y, color) {
+  el('circle', { cx: x, cy: y, r: 7, fill: color }, svg);
+  el('path', { d: `M${x - 11},${y + 26} Q${x},${y + 4} ${x + 11},${y + 26} Z`, fill: color }, svg);
+}
+
+function label(parent, text, x, y, size, fill, anchor = 'middle', weight = 400) {
+  const t = el('text', { x, y, 'font-size': size, fill, 'text-anchor': anchor, 'font-weight': weight }, parent);
+  t.textContent = text; return t;
+}
+
+// ---------- 2. Reloj ----------
+function dibujarReloj() {
+  const svg = $('clock'); svg.innerHTML = '';
+  el('circle', { cx: 50, cy: 50, r: 46, fill: 'var(--panel)', stroke: 'var(--ink)', 'stroke-width': 3 }, svg);
+  for (let i = 0; i < 12; i++) {
+    const a = i * Math.PI / 6;
+    el('line', { x1: 50 + 38 * Math.sin(a), y1: 50 - 38 * Math.cos(a), x2: 50 + 43 * Math.sin(a), y2: 50 - 43 * Math.cos(a), stroke: 'var(--ink)', 'stroke-width': i % 3 ? 1.5 : 3 }, svg);
+  }
+  const hand = (id, len, w, color) => el('line', { id, x1: 50, y1: 50, x2: 50, y2: 50 - len, stroke: color, 'stroke-width': w, 'stroke-linecap': 'round' }, svg);
+  hand('hH', 22, 4, 'var(--ink)'); hand('hM', 32, 3, 'var(--ink)'); hand('hS', 36, 1.5, 'var(--bad)');
+  el('circle', { cx: 50, cy: 50, r: 3, fill: 'var(--ink)' }, svg);
+}
+
+function tick() {
+  const d = new Date(), s = d.getSeconds(), m = d.getMinutes(), h = d.getHours();
+  $('hS').setAttribute('transform', `rotate(${s * 6} 50 50)`);
+  $('hM').setAttribute('transform', `rotate(${m * 6 + s * 0.1} 50 50)`);
+  $('hH').setAttribute('transform', `rotate(${(h % 12) * 30 + m * 0.5} 50 50)`);
+  $('clockText').textContent = d.toLocaleTimeString('es-MX', { hour12: false });
+  const abierto = h >= CONFIG.horaInicio && h < CONFIG.horaFin;
+  const turno = !abierto ? 'Fuera de horario' : h < 15 ? 'Turno matutino' : 'Turno vespertino';
+  $('turnoText').textContent = abierto ? `${turno} · λ esperada ${lambdaHora(h + m / 60).toFixed(1)} ped/h` : turno;
+}
+
+// ---------- 3. KPIs ----------
+function dibujarKPIs(filas, reg) {
+  const total = filas.reduce((s, f) => s + f.pedidos, 0);
+  const media = total / filas.length;
+  const sd = Math.sqrt(filas.reduce((s, f) => s + (f.pedidos - media) ** 2, 0) / (filas.length - 1));
+  const rhoProm = filas.reduce((s, f) => s + Math.min(f.rho, 1), 0) / filas.length;
+  const finitas = filas.filter(f => isFinite(f.wq));
+  const wqProm = finitas.reduce((s, f) => s + f.wq * f.pedidos, 0) / Math.max(1, finitas.reduce((s, f) => s + f.pedidos, 0));
+  const pico = filas.reduce((a, b) => (b.pedidos > a.pedidos ? b : a));
+  const kpis = [
+    { label: 'Pedidos del día', value: total, hint: `μ = ${media.toFixed(1)}/h · σ = ${sd.toFixed(1)}` },
+    { label: 'Hora pico', value: hh(pico.hora), hint: `${pico.pedidos} pedidos` },
+    { label: 'Utilización promedio ρ', value: pct(rhoProm), hint: `${CONFIG.cajas} cajas · μ = ${CONFIG.mu}/h c/u` },
+    { label: 'Espera media Wq', value: minutos(wqProm), hint: 'Ponderada por pedidos (M/M/c)' },
+    { label: 'Tendencia', value: (reg.b >= 0 ? '+' : '') + reg.b.toFixed(2) + '/h', hint: `R² = ${reg.r2.toFixed(3)}` },
+  ];
+  $('kpis').innerHTML = kpis.map(k =>
+    `<div class="kpi"><div class="label">${k.label}</div><div class="value">${k.value}</div><div class="hint">${k.hint}</div></div>`
+  ).join('');
+}
+
+// ---------- 4. Tabla ----------
+function dibujarTabla(filas, seleccion) {
+  $('tbody').innerHTML = filas.map((f, i) => {
+    const e = estado(f.rho);
+    return `<tr data-i="${i}" class="${i === seleccion ? 'sel' : ''}">
+      <td>${hh(f.hora)}–${hh(f.hora + 1)}</td><td>${f.pedidos}</td><td>${f.lambda.toFixed(1)}</td>
+      <td>${pct(f.rho)}</td><td>${pct(f.pw)}</td><td>${minutos(f.wq)}</td>
+      <td><span class="pill ${e.cls}">${e.txt}</span></td></tr>`;
+  }).join('');
+}
+
+// ---------- 5. Gráfica ----------
+function dibujarGrafica(filas, reg) {
+  const svg = $('chart'); svg.innerHTML = '';
+  const W = 1000, H = 260, P = { l: 40, r: 16, t: 14, b: 28 };
+  const xs = filas.map(f => f.hora), ys = filas.map(f => f.pedidos);
+  const ma = Stats.movingAvg(ys, 3);
+  const xMin = xs[0], xMax = xs[xs.length - 1];
+  const yMax = Math.ceil(Math.max(...ys) * 1.15 / 10) * 10;
+  const X = x => P.l + (x - xMin) / (xMax - xMin) * (W - P.l - P.r);
+  const Y = y => H - P.b - y / yMax * (H - P.t - P.b);
+
+  for (let v = 0; v <= yMax; v += yMax / 5) {
+    el('line', { x1: P.l, x2: W - P.r, y1: Y(v), y2: Y(v), stroke: 'var(--line)', 'stroke-width': 1 }, svg);
+    label(svg, Math.round(v), P.l - 6, Y(v) + 4, 11, 'var(--muted)', 'end');
+  }
+  xs.forEach(x => label(svg, hh(x).slice(0, 2), X(x), H - 8, 11, 'var(--muted)'));
+
+  const path = arr => arr.map((y, i) => (i ? 'L' : 'M') + X(xs[i]).toFixed(1) + ',' + Y(y).toFixed(1)).join(' ');
+  el('path', { d: path(ma), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.5, 'stroke-dasharray': '4 4', 'vector-effect': 'non-scaling-stroke' }, svg);
+  el('path', { d: `M${X(xMin)},${Y(reg.predict(xMin))} L${X(xMax)},${Y(reg.predict(xMax))}`, stroke: 'var(--trend)', 'stroke-width': 2, 'vector-effect': 'non-scaling-stroke' }, svg);
+  el('path', { d: path(ys), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2.5, 'vector-effect': 'non-scaling-stroke' }, svg);
+  ys.forEach((y, i) => {
+    const c = el('circle', { cx: X(xs[i]), cy: Y(y), r: 4, fill: 'var(--panel)', stroke: 'var(--accent)', 'stroke-width': 2 }, svg);
+    el('title', {}, c).textContent = `${hh(xs[i])}: ${y} pedidos`;
+  });
+}
+
+// ---------- Orquestación ----------
+const STATE = { filas: [], sel: 0 };
+
+function seleccionar(i) {
+  STATE.sel = i;
+  dibujarTabla(STATE.filas, i);
+  dibujarPlano(STATE.filas[i]);
+  $('horaSelText').textContent = `Vista del plano: ${hh(STATE.filas[i].hora)}`;
+}
+
+function init() {
+  STATE.filas = simular();
+  const reg = Stats.linreg(STATE.filas.map(f => f.hora), STATE.filas.map(f => f.pedidos));
+  dibujarKPIs(STATE.filas, reg);
+  dibujarGrafica(STATE.filas, reg);
+  const ahora = new Date().getHours();
+  const idx = STATE.filas.findIndex(f => f.hora === ahora);
+  seleccionar(idx >= 0 ? idx : STATE.filas.reduce((b, f, i, a) => f.pedidos > a[b].pedidos ? i : b, 0));
+  $('tbody').addEventListener('click', e => {
+    const tr = e.target.closest('tr'); if (tr) seleccionar(+tr.dataset.i);
+  });
+  dibujarReloj(); tick(); setInterval(tick, 1000);
+}
+init();
+</script>
+</body>
+</html>
