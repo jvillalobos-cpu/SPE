@@ -10,6 +10,9 @@
     --line: #d9dde5; --accent: #2f6fdf; --trend: #d9822b; --ok: #2e9e6a;
     --warn: #d9a12b; --bad: #d64545; --station: #eef1f6; --hatch: #9aa3b5;
     --sH: #e07b28; --sHP: #2f6fdf; --sP: #12a19a; --sPK: #8a5cd6;
+    --tile: #eef2f5; --tileLine: #e1e6eb; --floor: #f8f0e4; --floorLine: #efe2cf; --counter: #c9955f; --counterDark: #a6743f;
+    --steel: #e3e8ee; --steelDark: #a3adba; --grill: #33373e; --grillLine: #4a4f58; --oil: #f3c64f; --patty: #7a4026;
+    --rug: #e8eef9; --board: #2b3140; --plant: #5ea56b; --shirtStaff: #3d4a5c;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -17,6 +20,9 @@
       --line: #2e3542; --accent: #6b9cff; --trend: #f0a35a; --ok: #4cc28d;
       --warn: #e8bb52; --bad: #ef6b6b; --station: #232a36; --hatch: #5b6478;
       --sH: #f0954a; --sHP: #6b9cff; --sP: #3cc4bc; --sPK: #a888ec;
+      --tile: #1d232b; --tileLine: #252c36; --floor: #24201b; --floorLine: #2c2721; --counter: #8a6440; --counterDark: #6b4c2f;
+      --steel: #39414c; --steelDark: #5a6370; --grill: #121417; --grillLine: #2a2e35; --oil: #d4a53a; --patty: #8f4f2c;
+      --rug: #1d2532; --board: #0e1117; --plant: #4f8f5a; --shirtStaff: #8a9ab0;
     }
   }
   :root[data-theme="dark"] {
@@ -24,6 +30,9 @@
     --line: #2e3542; --accent: #6b9cff; --trend: #f0a35a; --ok: #4cc28d;
     --warn: #e8bb52; --bad: #ef6b6b; --station: #232a36; --hatch: #5b6478;
     --sH: #f0954a; --sHP: #6b9cff; --sP: #3cc4bc; --sPK: #a888ec;
+    --tile: #1d232b; --tileLine: #252c36; --floor: #24201b; --floorLine: #2c2721; --counter: #8a6440; --counterDark: #6b4c2f;
+    --steel: #39414c; --steelDark: #5a6370; --grill: #121417; --grillLine: #2a2e35; --oil: #d4a53a; --patty: #8f4f2c;
+    --rug: #1d2532; --board: #0e1117; --plant: #4f8f5a; --shirtStaff: #8a9ab0;
   }
   * { box-sizing: border-box; }
   body {
@@ -45,8 +54,9 @@
   .num { font-variant-numeric: tabular-nums; }
 
   /* ---------- Zona 1 ---------- */
-  .top { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
-  #plano { width: 100%; height: auto; display: block; }
+  .top { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+  #plano { width: 100%; height: auto; display: block; border-radius: 12px; }
+  #plano text { font-family: inherit; }
   .bottleneck { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; text-transform: none; letter-spacing: 0; }
   .bottleneck.ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
   .bottleneck.warn { background: color-mix(in srgb, var(--warn) 22%, transparent); color: var(--warn); }
@@ -71,7 +81,9 @@
   .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .sub { border-top: 1px solid var(--line); padding-top: 10px; }
   .row { display: flex; gap: 6px; align-items: center; font-size: 12px; margin-bottom: 4px; }
-  .row input[type=number] { width: 50px; }
+  .row input[type=number] { width: 46px; padding: 3px 4px; }
+  .row button { padding: 2px 7px; }
+  .clock-panel { min-width: 0; }
   .kv span:nth-child(even) { text-align: right; }
   #demanda { width: 100%; height: 70px; display: block; }
 
@@ -89,7 +101,10 @@
   /* ---------- Zona 3: tabla ---------- */
   .tabs { display: inline-flex; gap: 4px; }
   .tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .table-wrap { overflow-x: auto; }
+  .table-wrap { overflow: auto; }
+  .table-wrap.alta { max-height: 460px; }
+  .table-wrap.alta th { position: sticky; top: 0; background: var(--panel); z-index: 1; }
+  th.grp { text-align: center !important; border-bottom: 1px solid var(--line); }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
   th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
   th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
@@ -123,23 +138,26 @@
   <section class="top">
     <div class="panel">
       <h2>Simulación de flujo y producción <span id="cuello" class="bottleneck ok">Flujo estable</span></h2>
-      <svg id="plano" viewBox="0 0 915 440" role="img" aria-label="Plano de la hamburguesería">
+      <svg id="plano" viewBox="0 0 960 480" role="img" aria-label="Plano de la hamburguesería">
         <defs>
-          <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="8" style="stroke:var(--hatch)" stroke-width="3"/>
+          <pattern id="pTile" width="22" height="22" patternUnits="userSpaceOnUse">
+            <rect width="22" height="22" style="fill:var(--tile)"/><path d="M22 0V22H0" fill="none" style="stroke:var(--tileLine)" stroke-width="1.5"/>
           </pattern>
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" style="fill:var(--muted)"/>
-          </marker>
+          <pattern id="pFloor" width="140" height="24" patternUnits="userSpaceOnUse">
+            <rect width="140" height="24" style="fill:var(--floor)"/><path d="M0 23.5H140M60 0V24" fill="none" style="stroke:var(--floorLine)" stroke-width="1.5"/>
+          </pattern>
+          <pattern id="pGrill" width="9" height="9" patternUnits="userSpaceOnUse">
+            <rect width="9" height="9" style="fill:var(--grill)"/><path d="M4.5 0V9" style="stroke:var(--grillLine)" stroke-width="2"/>
+          </pattern>
+          <pattern id="pWood" width="40" height="12" patternUnits="userSpaceOnUse">
+            <rect width="40" height="12" style="fill:var(--counter)"/><path d="M0 11.5H40M25 0V12" style="stroke:var(--counterDark)" stroke-width="1" stroke-opacity=".5"/>
+          </pattern>
+          <filter id="sombra" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".18"/></filter>
         </defs>
         <g id="lyStatic"></g><g id="lyEnt"></g>
       </svg>
       <div class="legend">
-        <span><i class="sw" style="background:var(--sH)"></i>Hamburguesa</span>
-        <span><i class="sw" style="background:var(--sHP)"></i>Hamburguesa + papas</span>
-        <span><i class="sw" style="background:var(--sP)"></i>Papas</span>
-        <span><i class="sw" style="background:var(--sPK)"></i>Pickup de orden</span>
-        <span>● persona = sucursal · ■ comanda = en línea · contorno rojo = fuera de meta</span>
+        <span>El color de la playera indica qué pidió el cliente (ver menú) · bolsita = pedido en línea · halo rojo = ya superó su tiempo meta · el anillo de cada carne o canasta muestra su avance</span>
       </div>
       <div class="live" id="live"></div>
     </div>
@@ -193,7 +211,7 @@
   <!-- ================= ZONA 3: tabla ================= -->
   <section class="panel">
     <h2>Estadística
-      <span class="tabs"><button data-tab="seg" class="on">Por segmento</button><button data-tab="franja">Por franja (30 min)</button><button data-tab="teo">Teórico vs simulado</button></span>
+      <span class="tabs"><button data-tab="seg" class="on">Por segmento</button><button data-tab="franja">Por franja (30 min)</button><button data-tab="etapas">Tiempos por etapa</button><button data-tab="reg">Registro por cliente</button><button data-tab="teo">Teórico vs simulado</button></span>
     </h2>
     <div class="table-wrap"><table id="tabla"></table></div>
     <div class="formula" id="formula"></div>
@@ -209,6 +227,7 @@
         <option value="campana">Campana: distribución del tiempo total</option>
         <option value="exponencial">Exponencial: tiempo entre llegadas</option>
         <option value="dispersion">Dispersión: carga al llegar vs tiempo total</option>
+        <option value="etapas">Tiempos por etapa del cliente (promedio)</option>
       </select>
     </h2>
     <svg id="chart"></svg>
@@ -296,7 +315,7 @@ function nuevoEstado(hora) {
     cajaQ: [], cajas: [], burgerQ: [], fryQ: [], parr: [], frei: [], empaque: [],
     espera: [], pickup: [], sistema: new Set(), ents: new Map(),
     seg: {}, horas: {}, franjas: {}, serie: [], hechos: [], inter: [], util: {}, ultimaMuestra: -1, areaL: 0,
-    tNext: hora * 60 + expo(LMAX()), tUltLleg: null, wq: {},
+    tNext: hora * 60 + expo(LMAX()), tUltLleg: null, wq: {}, registro: [],
   };
   for (const s of SEG_LINEA) st.seg['linea.' + s.k] = statSeg();
   for (const s of SEG_SUC) st.seg['sucursal.' + s.k] = statSeg();
@@ -309,6 +328,24 @@ function binFranja(tArr) {               // franjas de 30 min según la hora de 
 }
 function expo(lambdaH) { return -Math.log(1 - Math.random()) / lambdaH * 60; }   // minutos hasta la siguiente llegada
 function LMAX() { let m = 0; for (let h = P.horaApertura; h < P.horaCierre; h += 0.05) m = Math.max(m, lambdaTotal(h)); return Math.max(m, 1e-6); }
+// Etapas del recorrido de un pedido (minutos). La "sala después de caja" transcurre mientras la cocina prepara.
+const ETAPAS = [
+  ['salaAntes', 'Sala antes de caja'], ['caja', 'Caja'], ['salaDespues', 'Sala después de caja'],
+  ['colaParr', 'Cola parrilla'], ['parr', 'Parrilla'], ['colaFrei', 'Cola freidora'], ['frei', 'Freidora'], ['ensamble', 'Ensamble'], ['total', 'Total'],
+];
+function etapas(o) {
+  const d = (a, b) => (a !== undefined && b !== undefined) ? b - a : undefined;
+  const pasaCaja = o.tCajaIni !== undefined;
+  return {
+    salaAntes: d(o.tArr, o.tCajaIni), caja: d(o.tCajaIni, o.tCajaFin),
+    salaDespues: pasaCaja ? d(o.tCajaFin, o.tFin) : o.canal === 'sucursal' ? d(o.tArr, o.tFin) : undefined,
+    colaParr: d(o.tCocina, o.parrIni), parr: d(o.parrIni, o.parrFin), colaFrei: d(o.tCocina, o.freiIni), frei: d(o.freiIni, o.freiFin),
+    ensamble: d(o.tEnsIni, o.tFin), total: d(o.tArr, o.tFin),
+    // tramos consecutivos (suman el total) para la gráfica del recorrido
+    _colaCocina: Math.min(o.parrIni ?? Infinity, o.freiIni ?? Infinity) - o.tCocina,
+    _prep: o.tEnsIni - Math.min(o.parrIni ?? Infinity, o.freiIni ?? Infinity),
+  };
+}
 function statSeg() { return { lleg: 0, ent: 0, sum: 0, tiempos: [], enMeta: 0, sumCaja: 0, nCaja: 0 }; }
 function binHora(t) {
   const h = Math.floor(t / 60);
@@ -348,10 +385,10 @@ function paso(dt) {
   }
 
   // 2) Cajas
-  for (const c of S.cajas) if (c.o && t >= c.tEnd) { const o = c.o; c.o = null; S.espera.push(o); aCocina(o); }
+  for (const c of S.cajas) if (c.o && t >= c.tEnd) { const o = c.o; c.o = null; o.tCajaFin = t; S.espera.push(o); aCocina(o); }
   S.cajas.forEach(c => {
     if (!c.o && S.cajaQ.length) {
-      const o = S.cajaQ.shift(); c.o = o; c.tEnd = t + Stats.muestra(P.tCaja);
+      const o = S.cajaQ.shift(); c.o = o; o.tCajaIni = t; c.tIni = t; c.tEnd = t + Stats.muestra(P.tCaja);
       const sg = S.seg[o.canal + '.' + o.seg]; sg.sumCaja += t - o.tArr; sg.nCaja++;
       const fb = binFranja(o.tArr).caja; fb.s += t - o.tArr; fb.n++;
     }
@@ -384,9 +421,9 @@ function paso(dt) {
 }
 
 function procesarEquipos(equipos, cola, tMedia, t, nodo) {
-  for (const eq of equipos) for (let s = 0; s < eq.length; s++) if (eq[s] && t >= eq[s].tEnd) { itemListo(eq[s].o); eq[s] = null; }
+  for (const eq of equipos) for (let s = 0; s < eq.length; s++) if (eq[s] && t >= eq[s].tEnd) { const o = eq[s].o; o[nodo + 'Fin'] = Math.max(o[nodo + 'Fin'] || 0, t); itemListo(o); eq[s] = null; }
   for (const eq of equipos) for (let s = 0; s < eq.length; s++) if (!eq[s] && cola.length) {
-    const o = cola.shift(); eq[s] = { o, tEnd: t + Stats.muestra(tMedia) };
+    const o = cola.shift(); eq[s] = { o, tIni: t, tEnd: t + Stats.muestra(tMedia) }; if (o[nodo + 'Ini'] === undefined) o[nodo + 'Ini'] = t;
     const fb = binFranja(o.tArr)[nodo]; fb.s += t - o.tCocina; fb.n++;
     (S.wq[nodo] ||= { s: 0, n: 0 }).s += t - o.tCocina; S.wq[nodo].n++;
   }
@@ -399,7 +436,7 @@ function llegada(canal, seg, ta) {
   if (S.tUltLleg !== null) S.inter.push(ta - S.tUltLleg);
   S.tUltLleg = ta;
   S.sistema.add(o);
-  if (canal === 'linea') { crearEnt(o, 'ticket', POS.inbox); irA(o, [POS.cocina], true); aCocina(o); }
+  if (canal === 'linea') { crearEnt(o, 'ticket', POS.inbox); irA(o, [{ x: 620, y: 112 }, { x: 380, y: 112 }, POS.cocina], true); aCocina(o); }
   else if (seg.k === 'PK') { crearEnt(o, 'persona', POS.puerta); S.pickup.push(o); aCocina(o); }
   else { crearEnt(o, 'persona', POS.puerta); S.cajaQ.push(o); }
 }
@@ -408,18 +445,19 @@ function aCocina(o) {
   for (let i = 0; i < o.b; i++) S.burgerQ.push(o);
   for (let i = 0; i < o.f; i++) S.fryQ.push(o);
 }
-function itemListo(o) { if (--o.pend === 0) S.empaque.push({ o, tEnd: S.t + Stats.muestra(P.tEnsamble) }); }
+function itemListo(o) { if (--o.pend === 0) { o.tEnsIni = S.t; S.empaque.push({ o, tEnd: S.t + Stats.muestra(P.tEnsamble) }); } }
 function listo(o) {
   const total = S.t - o.tArr, sg = S.seg[o.canal + '.' + o.seg], bh = binHora(S.t), ok = total <= meta(o);
   sg.ent++; sg.sum += total; sg.tiempos.push(total); if (ok) sg.enMeta++;
   bh.ent++; bh.sum += total; if (ok) bh.enMeta++;
+  o.tFin = S.t; S.registro.push(o);
   S.hechos.push({ t: S.t, total, seg: o.seg, canal: o.canal, carga: o.carga });
   const ft = binFranja(o.tArr).total; ft.s += total; ft.n++;
   S.sistema.delete(o);
-  if (o.canal === 'linea') { crearEnt(o, 'ticket', POS.cocina); irA(o, [POS.despacho, { x: 450, y: 100 }, { x: 915, y: 100 }], true); }
+  if (o.canal === 'linea') { crearEnt(o, 'ticket', POS.despacho); irA(o, [{ x: 600, y: 120 }, { x: 975, y: 120 }], true); }
   else {
     S.espera = S.espera.filter(x => x !== o); S.pickup = S.pickup.filter(x => x !== o);
-    irA(o, [POS.entrega, { x: 645, y: 280 }, { x: 915, y: 280 }], true);
+    irA(o, [POS.entrega, { x: 648, y: 288 }, { x: 930, y: 288 }, { x: 975, y: 228 }], true);
   }
 }
 
@@ -442,104 +480,180 @@ function txt(parent, s, x, y, size, color = 'var(--ink)', anchor = 'middle', wei
 function setFill(e, v) { e.style.fill = v; }
 
 const POS = {
-  puerta: { x: 912, y: 205 }, inbox: { x: 625, y: 58 }, cocina: { x: 287, y: 135 },
-  despacho: { x: 318, y: 40 }, entrega: { x: 352, y: 400 },
+  puerta: { x: 975, y: 228 }, inbox: { x: 660, y: 62 }, cocina: { x: 300, y: 160 },
+  despacho: { x: 336, y: 44 }, entrega: { x: 372, y: 440 },
 };
-const pFila = i => ({ x: 412 + (i % 17) * 20, y: 205 + Math.min(3, Math.floor(i / 17)) * 19 });
-const pEspera = i => ({ x: 396 + (i % 11) * 22, y: 322 + (Math.floor(i / 11) % 4) * 24 });
-const pPickup = i => ({ x: 672 + (i % 10) * 22, y: 322 + (Math.floor(i / 10) % 4) * 24 });
+const pFila = i => {                       // fila en serpentina con postes y cinta
+  const lane = Math.min(1, Math.floor(i / 20)), k = i % 20, x = 452 + k * 21;
+  return lane === 0 ? { x, y: 222 } : { x: 452 + (19 - k) * 21, y: 256 };
+};
+const pEspera = i => ({ x: 394 + (i % 11) * 22.5, y: 352 + (Math.floor(i / 11) % 4) * 30 });
+const pPickup = i => ({ x: 680 + (i % 12) * 22, y: 378 + (Math.floor(i / 12) % 3) * 30 });
 let REF = {};
-function cajaY(i) { const sp = 300 / P.cajas; return 70 + sp * (i + 0.5); }
+function cajaY(i) { const sp = 186 / P.cajas; return 108 + sp * (i + 0.5); }
+const PIEL = ['#f1c7a3', '#d9a27a', '#b07850', '#8a5a3b', '#f5d6bd', '#c68b62'];
+
+function pastilla(parent, x, y, texto, { color = 'var(--muted)', fondo = 'var(--panel)', w, ancla = 'start', size = 10.5 } = {}) {
+  const g = el('g', {}, parent), ancho = w || texto.length * size * 0.58 + 16, x0 = ancla === 'end' ? x - ancho : x;
+  const r = el('rect', { x: x0, y: y - 10, width: ancho, height: 20, rx: 10, fill: fondo, stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
+  const t = txt(g, texto, x0 + ancho / 2, y + 4, size, color, 'middle', 600);
+  return { g, r, t };
+}
+function planta(g, x, y) {
+  el('ellipse', { cx: x, cy: y + 10, rx: 9, ry: 3, fill: '#000', 'fill-opacity': 0.12 }, g);
+  el('rect', { x: x - 7, y: y, width: 14, height: 11, rx: 3, fill: 'var(--counterDark)' }, g);
+  for (const [dx, dy, r] of [[-6, -4, 6], [6, -4, 6], [0, -10, 7], [0, -2, 6]]) el('circle', { cx: x + dx, cy: y + dy, r, fill: 'var(--plant)' }, g);
+}
+function staff(g, x, y) {
+  el('path', { d: `M${x - 7},${y + 10} C${x - 7},${y + 1} ${x + 7},${y + 1} ${x + 7},${y + 10} Z`, fill: 'var(--shirtStaff)' }, g);
+  el('circle', { cx: x, cy: y - 2, r: 5, fill: PIEL[1] }, g);
+  el('path', { d: `M${x - 5.5},${y - 3} Q${x},${y - 11} ${x + 5.5},${y - 3} Z`, fill: 'var(--bad)' }, g);   // gorra
+}
 
 function construirPlano() {
   const g = $('lyStatic'); g.innerHTML = ''; REF = { frei: [], parr: [], cajas: [] };
-  // Cocina
-  el('rect', { x: 10, y: 10, width: 280, height: 420, rx: 6, fill: 'none', stroke: 'var(--line)', 'stroke-width': 2, 'stroke-dasharray': '8 6' }, g);
-  txt(g, 'COCINA', 150, 424, 10, 'var(--muted)');
-  REF.colaFrei = txt(g, '', 20, 26, 11, 'var(--muted)', 'start');
-  REF.colaParr = txt(g, '', 20, 142, 11, 'var(--muted)', 'start');
 
-  // Freidoras
-  const nf = P.freidoras, wf = (260 - (nf - 1) * 8) / nf;
+  // ---------- Pisos
+  el('rect', { x: 0, y: 0, width: 960, height: 480, rx: 12, fill: 'url(#pFloor)' }, g);
+  el('rect', { x: 8, y: 8, width: 300, height: 464, rx: 12, fill: 'url(#pTile)', stroke: 'var(--steelDark)', 'stroke-opacity': 0.4 }, g);
+
+  // ---------- Cocina: freidoras
+  txt(g, 'FREIDORAS', 22, 34, 11, 'var(--muted)', 'start', 700);
+  REF.colaFrei = pastilla(g, 296, 30, 'cola: 0 papas', { ancla: 'end', w: 104 });
+  const nf = P.freidoras, wf = (272 - (nf - 1) * 10) / nf;
   for (let i = 0; i < nf; i++) {
-    const x = 20 + i * (wf + 8), y = 34, h = 84, r = { canastas: [] };
-    el('rect', { x, y, width: wf, height: h, rx: 7, fill: 'var(--station)', stroke: 'var(--ink)', 'stroke-width': 1.3 }, g);
-    txt(g, wf > 90 ? `Freidora ${i + 1}` : `F${i + 1}`, x + wf / 2, y + 16, 12, 'var(--ink)', 'middle', 600);
-    const m = P.canastas, bw = Math.min(24, (wf - 12) / m - 4);
+    const x = 22 + i * (wf + 10), y = 46, h = 104, r = { vats: [] };
+    el('rect', { x, y, width: wf, height: h, rx: 10, fill: 'var(--steel)', stroke: 'var(--steelDark)', filter: 'url(#sombra)' }, g);
+    txt(g, wf > 100 ? `Freidora ${i + 1}` : `F${i + 1}`, x + 10, y + 16, 11, 'var(--ink)', 'start', 600);
+    r.chip = pastilla(g, x + wf - 6, y + 13, '0/0', { ancla: 'end', w: 34, size: 9.5 });
+    const m = P.canastas, vw = Math.min(46, (wf - 16) / m - 6);
     for (let s = 0; s < m; s++) {
-      const bx = x + wf / 2 - (m * (bw + 4) - 4) / 2 + s * (bw + 4);
-      r.canastas.push(el('rect', { x: bx, y: y + 26, width: bw, height: 30, rx: 3, fill: 'var(--panel)', stroke: 'var(--muted)' }, g));
+      const vx = x + wf / 2 - (m * (vw + 6) - 6) / 2 + s * (vw + 6), vy = y + 30, vg = el('g', {}, g), v = {};
+      el('rect', { x: vx, y: vy, width: vw, height: 50, rx: 6, fill: 'var(--steelDark)' }, vg);
+      v.aceite = el('rect', { x: vx + 3, y: vy + 3, width: vw - 6, height: 44, rx: 4, fill: 'var(--oil)', 'fill-opacity': 0.35 }, vg);
+      v.papas = el('g', { opacity: 0 }, vg);
+      for (let k = 0; k < 6; k++) el('rect', { x: vx + 6 + (k % 3) * ((vw - 14) / 3), y: vy + 12 + Math.floor(k / 3) * 12 + (k % 2) * 3, width: 3.2, height: 13, rx: 1.5, fill: '#e9a93a', transform: `rotate(${(k * 23) % 30 - 15} ${vx + 7 + (k % 3) * ((vw - 14) / 3)} ${vy + 18})` }, v.papas);
+      v.burbujas = [0, 1, 2].map(k => el('circle', { cx: vx + 8 + k * (vw - 16) / 2, cy: vy + 40, r: 2, fill: '#fff', 'fill-opacity': 0 }, vg));
+      v.borde = el('rect', { x: vx + 1, y: vy + 1, width: vw - 2, height: 48, rx: 5.5, fill: 'none', 'stroke-width': 2.5, stroke: 'none' }, vg);
+      el('rect', { x: vx, y: vy + 56, width: vw, height: 5, rx: 2.5, fill: 'var(--line)' }, vg);
+      v.prog = el('rect', { x: vx, y: vy + 56, width: 0, height: 5, rx: 2.5, fill: 'var(--ok)' }, vg);
+      v.vw = vw; r.vats.push(v);
     }
-    el('rect', { x: x + 6, y: y + h - 14, width: wf - 12, height: 5, rx: 2.5, fill: 'var(--line)' }, g);
-    r.bar = el('rect', { x: x + 6, y: y + h - 14, width: 0, height: 5, rx: 2.5, fill: 'var(--ok)' }, g);
-    r.bw = wf - 12;
     REF.frei.push(r);
   }
 
-  // Parrillas
-  const np = P.parrillas, hp = (250 - (np - 1) * 8) / np;
+  // ---------- Cocina: parrillas
+  txt(g, 'PARRILLAS', 22, 176, 11, 'var(--muted)', 'start', 700);
+  REF.colaParr = pastilla(g, 296, 172, 'cola: 0 hamburguesas', { ancla: 'end', w: 140 });
+  const np = P.parrillas, hp = (278 - (np - 1) * 10) / np;
   for (let i = 0; i < np; i++) {
-    const x = 20, y = 150 + i * (hp + 8), w = 260, r = { slots: [] };
-    el('rect', { x, y, width: w, height: hp, rx: 8, fill: 'var(--station)', stroke: 'var(--ink)', 'stroke-width': 1.3 }, g);
-    txt(g, `Parrilla ${i + 1}`, x + 10, y + 16, 12, 'var(--ink)', 'start', 600);
-    r.pct = txt(g, '', x + w - 10, y + 16, 11, 'var(--muted)', 'end');
-    const m = P.slotsParrilla, rad = Math.max(4, Math.min(12, (240 / m) / 2 - 3, (hp - 32) / 2));
+    const x = 22, y = 188 + i * (hp + 10), w = 272, r = { slots: [] };
+    el('rect', { x, y, width: w, height: hp, rx: 10, fill: 'var(--steel)', stroke: 'var(--steelDark)', filter: 'url(#sombra)' }, g);
+    txt(g, `Parrilla ${i + 1}`, x + 10, y + 15, 11, 'var(--ink)', 'start', 600);
+    r.chip = pastilla(g, x + w - 6, y + 12, '0/0', { ancla: 'end', w: 34, size: 9.5 });
+    const gy = y + 24, gh = hp - 30;
+    el('rect', { x: x + 8, y: gy, width: w - 16, height: gh, rx: 6, fill: 'url(#pGrill)' }, g);
+    const m = P.slotsParrilla, rad = Math.max(5, Math.min(15, (w - 16) / m / 2 - 5, gh / 2 - 5));
     for (let s = 0; s < m; s++) {
-      r.slots.push(el('circle', { cx: x + 10 + (s + 0.5) * (240 / m), cy: y + 18 + (hp - 26) / 2 + 4, r: rad, fill: 'var(--panel)', stroke: 'var(--muted)' }, g));
+      const cx = x + 8 + (s + 0.5) * ((w - 16) / m), cy = gy + gh / 2, sg = el('g', {}, g), v = {};
+      el('circle', { cx, cy, r: rad, fill: 'none', stroke: 'var(--grillLine)', 'stroke-dasharray': '3 3' }, sg);
+      v.carne = el('circle', { cx, cy, r: rad - 1, fill: 'var(--patty)', opacity: 0 }, sg);
+      v.marcas = el('path', { d: `M${cx - rad * 0.5},${cy - rad * 0.3}h${rad}M${cx - rad * 0.5},${cy + rad * 0.3}h${rad}`, stroke: '#3b1e10', 'stroke-width': 1.5, opacity: 0 }, sg);
+      const rr = rad + 3, circ = 2 * Math.PI * rr;
+      v.arco = el('circle', { cx, cy, r: rr, fill: 'none', 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-dasharray': `0 ${circ}`, transform: `rotate(-90 ${cx} ${cy})`, opacity: 0 }, sg);
+      v.circ = circ; r.slots.push(v);
     }
-    el('rect', { x: x + 8, y: y + hp - 9, width: w - 16, height: 4, rx: 2, fill: 'var(--line)' }, g);
-    r.bar = el('rect', { x: x + 8, y: y + hp - 9, width: 0, height: 4, rx: 2, fill: 'var(--ok)' }, g);
-    r.bw = w - 16;
     REF.parr.push(r);
   }
 
-  // Flujo de comida hacia la barra
-  el('path', { d: 'M282,135 L296,135', stroke: 'var(--muted)', 'stroke-dasharray': '4 4', 'marker-end': 'url(#arrow)', fill: 'none' }, g);
+  // ---------- Barra (madera) con pase y entrega
+  el('rect', { x: 316, y: 10, width: 42, height: 460, rx: 8, fill: 'url(#pWood)', stroke: 'var(--counterDark)', filter: 'url(#sombra)' }, g);
+  el('rect', { x: 320, y: 16, width: 34, height: 64, rx: 5, fill: 'var(--panel)', 'fill-opacity': 0.75 }, g);
+  txt(g, 'PASE', 337, 32, 9, 'var(--ink)', 'middle', 700);
+  txt(g, 'en línea', 337, 43, 8, 'var(--muted)');
+  for (let k = 0; k < 2; k++) el('rect', { x: 324 + k * 14, y: 54, width: 11, height: 14, rx: 2, fill: '#c9a27a', stroke: '#9c7a55' }, g);
+  el('rect', { x: 320, y: 404, width: 34, height: 60, rx: 5, fill: 'var(--panel)', 'fill-opacity': 0.75 }, g);
+  txt(g, 'ENTREGA', 337, 430, 8, 'var(--ink)', 'middle', 700);
+  txt(g, 'y pickup', 337, 441, 8, 'var(--muted)');
 
-  // Barra
-  el('rect', { x: 300, y: 10, width: 36, height: 420, fill: 'var(--station)', stroke: 'var(--ink)', 'stroke-width': 1.3 }, g);
-  el('rect', { x: 300, y: 10, width: 36, height: 50, fill: 'url(#hatch)', stroke: 'var(--ink)', 'stroke-width': 1.3 }, g);
-  el('rect', { x: 300, y: 380, width: 36, height: 50, fill: 'url(#hatch)', stroke: 'var(--ink)', 'stroke-width': 1.3 }, g);
-  txt(g, 'Despacho en línea', 344, 30, 10, 'var(--muted)', 'start');
-  txt(g, 'Entrega / pickup', 344, 426, 10, 'var(--muted)', 'start');
-
-  // Cajas
-  const sp = 300 / P.cajas, ch = Math.min(40, sp - 6);
+  // ---------- Cajas
+  const sp = 186 / P.cajas, ch = Math.min(46, sp - 5);
   for (let i = 0; i < P.cajas; i++) {
-    const y = cajaY(i);
-    REF.cajas.push(el('rect', { x: 294, y: y - ch / 2, width: 48, height: ch, rx: 4, fill: 'var(--panel)', stroke: 'var(--line)', 'stroke-width': 2.5 }, g));
-    txt(g, `Caja ${i + 1}`, 318, y + 4, ch < 22 ? 9 : 11);
+    const y = cajaY(i), r = {};
+    if (ch >= 30) staff(g, 330, y - 2);
+    el('rect', { x: 344, y: y - ch / 2, width: 46, height: ch, rx: 8, fill: 'var(--panel)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
+    r.pantalla = el('rect', { x: 351, y: y - ch / 2 + 5, width: 32, height: Math.max(6, ch - 22), rx: 3, fill: 'var(--ok)' }, g);
+    txt(g, `Caja ${i + 1}`, 367, y + ch / 2 - 5, ch < 26 ? 8 : 9, 'var(--ink)', 'middle', 600);
+    el('rect', { x: 351, y: y + ch / 2 + 1, width: 32, height: 3, rx: 1.5, fill: 'var(--line)' }, g);
+    r.prog = el('rect', { x: 351, y: y + ch / 2 + 1, width: 0, height: 3, rx: 1.5, fill: 'var(--accent)' }, g);
+    REF.cajas.push(r);
   }
 
-  // Zona de clientes
-  REF.colaCaja = txt(g, '', 412, 186, 11, 'var(--muted)', 'start');
-  el('rect', { x: 380, y: 292, width: 262, height: 132, rx: 8, fill: 'none', stroke: 'var(--line)', 'stroke-dasharray': '4 4' }, g);
-  REF.txtEspera = txt(g, 'Esperando orden', 390, 308, 11, 'var(--muted)', 'start');
-  el('rect', { x: 656, y: 292, width: 250, height: 132, rx: 8, fill: 'none', stroke: 'var(--line)', 'stroke-dasharray': '4 4' }, g);
-  REF.txtPickup = txt(g, 'Pickup', 666, 308, 11, 'var(--muted)', 'start');
-  el('rect', { x: 888, y: 182, width: 22, height: 46, rx: 3, fill: 'var(--station)', stroke: 'var(--muted)' }, g);
-  txt(g, 'Entrada', 884, 176, 10, 'var(--muted)', 'end');
+  // ---------- Recepción: menú (leyenda), pedidos en línea, repartidor
+  el('rect', { x: 374, y: 18, width: 246, height: 82, rx: 10, fill: 'var(--board)', filter: 'url(#sombra)' }, g);
+  txt(g, 'MENÚ', 497, 36, 12, '#fff', 'middle', 800);
+  [['H', 'Hamburguesa'], ['HP', 'Hamb. + papas'], ['P', 'Papas'], ['PK', 'Pickup de orden']].forEach(([k, n], i) => {
+    const x = 390 + (i % 2) * 116, y = 58 + Math.floor(i / 2) * 22;
+    el('circle', { cx: x, cy: y - 4, r: 5, fill: COLOR[k] }, g); txt(g, n, x + 10, y, 10.5, '#e8ecf3', 'start');
+  });
+  el('rect', { x: 636, y: 18, width: 312, height: 82, rx: 10, fill: 'var(--panel)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
+  el('rect', { x: 648, y: 30, width: 24, height: 40, rx: 5, fill: 'var(--ink)' }, g);
+  el('rect', { x: 651, y: 35, width: 18, height: 28, rx: 2, fill: 'var(--accent)' }, g);
+  txt(g, 'Pedidos en línea', 684, 40, 12, 'var(--ink)', 'start', 700);
+  REF.inbox = txt(g, '', 684, 58, 10.5, 'var(--muted)', 'start');
+  REF.inbox2 = txt(g, '', 684, 76, 10.5, 'var(--muted)', 'start');
+  REF.inbox3 = txt(g, '', 684, 92, 10, 'var(--muted)', 'start');
+  // scooter del repartidor
+  const sx = 600, sy = 132;
+  el('circle', { cx: sx - 10, cy: sy + 8, r: 5, fill: 'var(--ink)' }, g); el('circle', { cx: sx + 12, cy: sy + 8, r: 5, fill: 'var(--ink)' }, g);
+  el('path', { d: `M${sx - 14},${sy + 4} L${sx + 6},${sy + 4} L${sx + 12},${sy - 8} L${sx + 16},${sy - 8}`, fill: 'none', stroke: 'var(--bad)', 'stroke-width': 4, 'stroke-linecap': 'round' }, g);
+  el('rect', { x: sx - 16, y: sy - 10, width: 14, height: 12, rx: 2, fill: 'var(--bad)' }, g);
+  txt(g, 'Reparto', sx + 2, sy + 26, 9, 'var(--muted)');
 
-  // Bandeja de pedidos en línea
-  el('rect', { x: 605, y: 16, width: 302, height: 68, rx: 8, fill: 'var(--station)', stroke: 'var(--line)' }, g);
-  txt(g, 'Pedidos en línea (app / web)', 645, 36, 12, 'var(--ink)', 'start', 600);
-  REF.inbox = txt(g, '', 645, 56, 11, 'var(--muted)', 'start');
-  REF.inbox2 = txt(g, '', 645, 72, 11, 'var(--muted)', 'start');
+  // ---------- Entrada
+  el('rect', { x: 940, y: 196, width: 14, height: 64, rx: 3, fill: 'var(--counter)', stroke: 'var(--counterDark)' }, g);
+  el('rect', { x: 906, y: 204, width: 30, height: 48, rx: 6, fill: 'var(--accent)', 'fill-opacity': 0.18 }, g);
+  pastilla(g, 948, 180, 'Entrada', { ancla: 'end', w: 64, color: 'var(--accent)' });
+  planta(g, 936, 286); planta(g, 892, 160);
+
+  // ---------- Fila con postes y cinta
+  REF.colaCaja = pastilla(g, 440, 166, 'Fila para cajas: 0', { w: 122 });
+  for (const y of [206, 240, 272]) {
+    const xs = []; for (let x = 440; x <= 862; x += 70) xs.push(x);
+    for (let k = 0; k < xs.length - 1; k++) el('path', { d: `M${xs[k]},${y - 6} Q${(xs[k] + xs[k + 1]) / 2},${y - 1} ${xs[k + 1]},${y - 6}`, fill: 'none', stroke: 'var(--bad)', 'stroke-width': 2, 'stroke-opacity': 0.55 }, g);
+    for (const x of xs) { el('ellipse', { cx: x, cy: y + 2, rx: 4, ry: 1.6, fill: '#000', 'fill-opacity': 0.15 }, g); el('rect', { x: x - 1.5, y: y - 10, width: 3, height: 12, fill: 'var(--steelDark)' }, g); el('circle', { cx: x, cy: y - 10, r: 2.5, fill: 'var(--ink)' }, g); }
+  }
+
+  // ---------- Sala de espera con bancas
+  el('rect', { x: 374, y: 300, width: 268, height: 168, rx: 14, fill: 'var(--rug)', stroke: 'var(--line)' }, g);
+  REF.txtEspera = pastilla(g, 384, 318, 'Sala de espera: 0', { w: 124 });
+  for (let r = 0; r < 4; r++) el('rect', { x: 382, y: 352 + r * 30 + 8, width: 252, height: 6, rx: 3, fill: 'var(--counter)', 'fill-opacity': 0.8 }, g);
+  planta(g, 624, 318);
+
+  // ---------- Pickup con estante
+  el('rect', { x: 656, y: 300, width: 294, height: 168, rx: 14, fill: 'var(--rug)', stroke: 'var(--line)' }, g);
+  REF.txtPickup = pastilla(g, 666, 318, 'Pickup: 0', { w: 76 });
+  el('rect', { x: 752, y: 308, width: 186, height: 40, rx: 6, fill: 'var(--counter)', stroke: 'var(--counterDark)' }, g);
+  for (let k = 0; k < 6; k++) { el('rect', { x: 758 + k * 30, y: 314, width: 26, height: 28, rx: 3, fill: 'var(--panel)', 'fill-opacity': 0.8 }, g); }
+  REF.cubbies = []; for (let k = 0; k < 6; k++) REF.cubbies.push(el('rect', { x: 764 + k * 30, y: 322, width: 14, height: 16, rx: 2, fill: 'var(--sPK)', opacity: 0 }, g));
 }
 
-// Entidades animadas (personas y comandas)
+// Entidades animadas (personas y bolsas de pedidos en línea)
 function crearEnt(o, tipo, pos) {
   if (S.ents.has(o.id)) return;
   const g = el('g', {}, $('lyEnt')), c = COLOR[o.seg];
-  let forma;
+  el('ellipse', { cx: 0, cy: 10, rx: 7, ry: 2.4, fill: '#000', 'fill-opacity': 0.16 }, g);
+  const halo = el('circle', { cx: 0, cy: 2, r: 12, fill: 'var(--bad)', 'fill-opacity': 0.28, opacity: 0 }, g);
   if (tipo === 'persona') {
-    forma = el('circle', { cx: 0, cy: -6, r: 4.5, fill: c, 'stroke-width': 1.5 }, g);
-    el('path', { d: 'M-6,7 Q0,-2 6,7 Z', fill: c }, g);
+    el('path', { d: 'M-7,10 C-7,0 7,0 7,10 Z', fill: c }, g);
+    el('circle', { cx: 0, cy: -3.5, r: 5, fill: PIEL[o.id % PIEL.length] }, g);
+    el('path', { d: 'M-5,-5 Q0,-11 5,-5 Q0,-7.5 -5,-5 Z', fill: ['#3b2a20', '#1d1d1d', '#6b4a2b', '#c49a5a'][o.id % 4] }, g);
   } else {
-    forma = el('rect', { x: -6, y: -5, width: 12, height: 10, rx: 2, fill: c, 'stroke-width': 1.5 }, g);
-    el('line', { x1: -3, y1: 0, x2: 3, y2: 0, stroke: '#fff', 'stroke-width': 1.5 }, g);
+    el('rect', { x: -6.5, y: -3, width: 13, height: 12, rx: 2.5, fill: c }, g);
+    el('path', { d: 'M-3.5,-3 Q0,-9 3.5,-3', fill: 'none', stroke: c, 'stroke-width': 1.8 }, g);
+    el('path', { d: 'M-3,3 h6', stroke: '#fff', 'stroke-width': 1.6, 'stroke-linecap': 'round' }, g);
   }
-  S.ents.set(o.id, { o, g, forma, x: pos.x, y: pos.y, ruta: [], borrar: false });
+  S.ents.set(o.id, { o, g, halo, x: pos.x, y: pos.y, ruta: [], borrar: false, fase: Math.random() * 6 });
 }
 function irA(o, ruta, borrar = false) { const e = S.ents.get(o.id); if (e) { e.ruta = ruta.slice(); e.borrar = borrar; } }
 function apuntar(o, p) {
@@ -549,66 +663,99 @@ function apuntar(o, p) {
 }
 function posicionar() {
   S.cajaQ.forEach((o, i) => apuntar(o, pFila(i)));
-  S.cajas.forEach((c, i) => c.o && apuntar(c.o, { x: 364, y: cajaY(i) + 4 }));
+  S.cajas.forEach((c, i) => c.o && apuntar(c.o, { x: 408, y: cajaY(i) }));
   S.espera.forEach((o, i) => apuntar(o, pEspera(i)));
   S.pickup.forEach((o, i) => apuntar(o, pPickup(i)));
 }
 function animar(realDt) {
-  const v = 160 * Math.max(1, VEL) * realDt;
+  const v = 150 * Math.max(1, VEL) * realDt, now = performance.now() / 1000;
   for (const [id, e] of S.ents) {
-    let paso = v;
+    let paso = v; const mov = e.ruta.length > 0;
     while (paso > 0 && e.ruta.length) {
       const p = e.ruta[0], dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy);
       if (d <= paso) { e.x = p.x; e.y = p.y; e.ruta.shift(); paso -= d; } else { e.x += dx / d * paso; e.y += dy / d * paso; paso = 0; }
     }
     if (!e.ruta.length && e.borrar) { e.g.remove(); S.ents.delete(id); continue; }
     const tarde = S.sistema.has(e.o) && S.t - e.o.tArr > meta(e.o);
-    e.forma.style.stroke = tarde ? 'var(--bad)' : 'none';
-    e.g.setAttribute('transform', `translate(${e.x.toFixed(1)},${e.y.toFixed(1)})`);
+    e.halo.setAttribute('opacity', tarde ? 0.6 + 0.4 * Math.sin(now * 5 + e.fase) : 0);
+    const bob = mov ? Math.abs(Math.sin(now * 12 + e.fase)) * -2.2 : 0;
+    e.g.setAttribute('transform', `translate(${e.x.toFixed(1)},${(e.y + bob).toFixed(1)})`);
   }
 }
 function colorCarga(r) { return r >= 0.95 ? 'var(--bad)' : r >= 0.75 ? 'var(--warn)' : 'var(--ok)'; }
+function chip(c, texto, carga) { c.t.textContent = texto; c.t.style.fill = colorCarga(carga); }
+function colaChip(c, texto, n, cap) { c.t.textContent = texto; c.t.style.fill = n === 0 ? 'var(--muted)' : n >= cap ? 'var(--bad)' : 'var(--warn)'; }
 
 function dibujarDinamico() {
+  const t = S.t, now = performance.now() / 1000;
+  const prog = sl => Math.min(1, Math.max(0, (t - sl.tIni) / (sl.tEnd - sl.tIni)));
   S.frei.forEach((eq, i) => {
     const r = REF.frei[i]; if (!r) return; let n = 0;
-    eq.forEach((s, j) => { setFill(r.canastas[j], s ? COLOR[s.o.seg] : 'var(--panel)'); if (s) n++; });
-    const u = n / eq.length; r.bar.setAttribute('width', r.bw * u); setFill(r.bar, colorCarga(u));
+    eq.forEach((sl, j) => {
+      const v = r.vats[j]; if (!v) return;
+      if (sl) {
+        n++; const p = prog(sl);
+        v.aceite.setAttribute('fill-opacity', 0.9); v.papas.setAttribute('opacity', 1);
+        v.papas.querySelectorAll('rect').forEach(x => x.setAttribute('fill', p > 0.85 ? '#d98a1e' : '#f0c25a'));
+        v.borde.style.stroke = COLOR[sl.o.seg];
+        v.prog.setAttribute('width', v.vw * p); v.prog.style.fill = COLOR[sl.o.seg];
+        v.burbujas.forEach((b, k) => { const ph = (now * 1.6 + k * 0.33) % 1; b.setAttribute('cy', +b.getAttribute('cy') * 0 + 76 + 46 - ph * 40); b.setAttribute('fill-opacity', 0.7 * (1 - ph)); });
+      } else {
+        v.aceite.setAttribute('fill-opacity', 0.35); v.papas.setAttribute('opacity', 0); v.borde.style.stroke = 'none';
+        v.prog.setAttribute('width', 0); v.burbujas.forEach(b => b.setAttribute('fill-opacity', 0));
+      }
+    });
+    chip(r.chip, `${n}/${eq.length}`, n / eq.length);
   });
   S.parr.forEach((eq, i) => {
     const r = REF.parr[i]; if (!r) return; let n = 0;
-    eq.forEach((s, j) => { setFill(r.slots[j], s ? COLOR[s.o.seg] : 'var(--panel)'); if (s) n++; });
-    const u = n / eq.length; r.bar.setAttribute('width', r.bw * u); setFill(r.bar, colorCarga(u));
-    r.pct.textContent = `${n}/${eq.length}`;
+    eq.forEach((sl, j) => {
+      const v = r.slots[j]; if (!v) return;
+      if (sl) {
+        n++; const p = prog(sl);
+        v.carne.setAttribute('opacity', 1); v.marcas.setAttribute('opacity', p > 0.5 ? 0.9 : 0);
+        v.arco.setAttribute('opacity', 1); v.arco.style.stroke = COLOR[sl.o.seg];
+        v.arco.setAttribute('stroke-dasharray', `${(v.circ * p).toFixed(1)} ${v.circ.toFixed(1)}`);
+      } else { v.carne.setAttribute('opacity', 0); v.marcas.setAttribute('opacity', 0); v.arco.setAttribute('opacity', 0); }
+    });
+    chip(r.chip, `${n}/${eq.length}`, n / eq.length);
   });
-  S.cajas.forEach((c, i) => { if (REF.cajas[i]) REF.cajas[i].style.stroke = c.o ? 'var(--accent)' : 'var(--line)'; });
-  REF.colaFrei.textContent = `Freidoras · papas en cola: ${S.fryQ.length}`;
-  REF.colaParr.textContent = `Parrillas · hamburguesas en cola: ${S.burgerQ.length}`;
-  REF.colaCaja.textContent = `Fila para cajas: ${S.cajaQ.length}`;
-  REF.txtEspera.textContent = `Esperando orden: ${S.espera.length}`;
-  REF.txtPickup.textContent = `Pickup: ${S.pickup.length}`;
+  S.cajas.forEach((c, i) => {
+    const r = REF.cajas[i]; if (!r) return;
+    r.pantalla.style.fill = c.o ? 'var(--accent)' : 'var(--ok)';
+    r.prog.setAttribute('width', c.o ? 32 * prog(c) : 0);
+  });
+  colaChip(REF.colaFrei, `cola: ${S.fryQ.length} papas`, S.fryQ.length, S.frei.flat().length);
+  colaChip(REF.colaParr, `cola: ${S.burgerQ.length} hamburguesas`, S.burgerQ.length, S.parr.flat().length);
+  colaChip(REF.colaCaja, `Fila para cajas: ${S.cajaQ.length}`, S.cajaQ.length, S.cajas.length * 3);
+  REF.txtEspera.t.textContent = `Sala de espera: ${S.espera.length}`;
+  REF.txtPickup.t.textContent = `Pickup: ${S.pickup.length}`;
+  REF.cubbies.forEach((c, k) => c.setAttribute('opacity', k < S.pickup.length ? 0.85 : 0));
   const enCocinaL = [...S.sistema].filter(o => o.canal === 'linea').length;
   const recL = SEG_LINEA.reduce((s, x) => s + S.seg['linea.' + x.k].lleg, 0);
   REF.inbox.textContent = `Recibidos hoy: ${recL} · en preparación: ${enCocinaL}`;
-  REF.inbox2.textContent = 'Hamb. ' + S.seg['linea.H'].lleg + ' · Hamb. y papas ' + S.seg['linea.HP'].lleg + ' · Papas ' + S.seg['linea.P'].lleg;
+  REF.inbox2.textContent = `Hamb. ${S.seg['linea.H'].lleg} · Hamb. + papas ${S.seg['linea.HP'].lleg} · Papas ${S.seg['linea.P'].lleg}`;
+  const entL = SEG_LINEA.reduce((s, x) => s + S.seg['linea.' + x.k].ent, 0), sumL = SEG_LINEA.reduce((s, x) => s + S.seg['linea.' + x.k].sum, 0);
+  REF.inbox3.textContent = entL ? `Entregados: ${entL} · tiempo promedio ${(sumL / entL).toFixed(1)} min` : 'Entregados: 0';
 }
 
 // Cuello de botella: recurso con mayor cola por unidad de capacidad
 function cuello() {
   const rec = [
-    { n: 'Cajas', q: S.cajaQ.length, cap: S.cajas.length, u: S.cajas.filter(c => c.o).length / S.cajas.length, uni: 'clientes' },
-    { n: 'Parrillas', q: S.burgerQ.length, cap: S.parr.flat().length, u: S.parr.flat().filter(Boolean).length / S.parr.flat().length, uni: 'hamburguesas' },
-    { n: 'Freidoras', q: S.fryQ.length, cap: S.frei.flat().length, u: S.frei.flat().filter(Boolean).length / S.frei.flat().length, uni: 'papas' },
+    { n: 'Cajas', q: S.cajaQ.length, cap: S.cajas.length, u: S.cajas.filter(c => c.o).length / S.cajas.length, uni: 'clientes', uni1: 'cliente' },
+    { n: 'Parrillas', q: S.burgerQ.length, cap: S.parr.flat().length, u: S.parr.flat().filter(Boolean).length / S.parr.flat().length, uni: 'hamburguesas', uni1: 'hamburguesa' },
+    { n: 'Freidoras', q: S.fryQ.length, cap: S.frei.flat().length, u: S.frei.flat().filter(Boolean).length / S.frei.flat().length, uni: 'papas', uni1: 'papa' },
   ];
   rec.forEach(r => r.score = r.q / r.cap + r.u);
   const peor = rec.reduce((a, b) => b.score > a.score ? b : a);
   const e = $('cuello');
   if (peor.q === 0 && peor.u < 0.85) { e.className = 'bottleneck ok'; e.textContent = 'Flujo estable'; }
-  else { e.className = 'bottleneck ' + (peor.q / peor.cap >= 1 ? 'bad' : 'warn'); e.textContent = `Cuello de botella: ${peor.n} · ${peor.q} ${peor.uni} en cola · ocupación ${Math.round(peor.u * 100)}%`; }
+  else { e.className = 'bottleneck ' + (peor.q / peor.cap >= 1 ? 'bad' : 'warn'); e.textContent = `Cuello de botella: ${peor.n} · ${peor.q} ${peor.q === 1 ? peor.uni1 : peor.uni} en cola · ocupación ${Math.round(peor.u * 100)}%`; }
 }
 
 // ---------------- Reloj ----------------
 const hhmm = m => { m = Math.max(0, m); const h = Math.floor(m / 60), mm = Math.floor(m % 60); return String(h % 24).padStart(2, '0') + ':' + String(mm).padStart(2, '0'); };
+const hms = m => { const s = Math.round(m * 60); return [Math.floor(s / 3600) % 24, Math.floor(s / 60) % 60, s % 60].map(x => String(x).padStart(2, '0')).join(':'); };
 const dur = m => { m = Math.max(0, m); return `${Math.floor(m / 60)} h ${String(Math.floor(m % 60)).padStart(2, '0')} min`; };
 function construirReloj() {
   const svg = $('clock');
@@ -655,7 +802,7 @@ function dibujarDemanda() {
 function construirPicos() {
   $('picos').innerHTML = P.picos.map((p, i) => `
     <div class="row">Hora <input type="number" data-pico="${i}" data-k="hora" value="${p.hora}" min="0" max="24" step="0.25">
-    +clientes/h <input type="number" data-pico="${i}" data-k="extra" value="${p.extra}" min="0" max="300" step="1">
+    +clientes <input type="number" data-pico="${i}" data-k="extra" value="${p.extra}" min="0" max="300" step="1">
     ±h <input type="number" data-pico="${i}" data-k="ancho" value="${p.ancho}" min="0.25" max="6" step="0.25">
     <button data-quitar="${i}" title="Quitar">✕</button></div>`).join('');
 }
@@ -722,6 +869,7 @@ function pill(v) { if (!isFinite(v)) return ''; const c = v >= 0.85 ? 'ok' : v >
 function pillRho(v) { const c = v >= 1 ? 'bad' : v >= 0.8 ? 'warn' : 'ok'; return `<span class="pill ${c}">${pc(v)}</span>`; }
 function dibujarTabla() {
   const tb = $('tabla');
+  tb.parentElement.classList.toggle('alta', TAB === 'reg');
   if (TAB === 'seg') {
     const filas = [];
     const enSis = {}; for (const o of S.sistema) enSis[o.canal + '.' + o.seg] = (enSis[o.canal + '.' + o.seg] || 0) + 1;
@@ -753,6 +901,27 @@ function dibujarTabla() {
     }
     tb.innerHTML = `<thead><tr><th>Franja</th><th>Tipo</th><th>Llegadas esperadas</th><th>Simuladas</th><th>Diferencia</th><th>En línea</th><th>Sucursal</th><th>Espera caja</th><th>Espera parrilla</th><th>Espera freidora</th><th>Tiempo total</th></tr></thead><tbody>${filas.join('')}</tbody>`;
     $('formula').innerHTML = 'Llegadas esperadas por franja = <b>λ(t) × 0.5 h</b>. Las esperas (min) se agrupan por la franja en que <b>llegó</b> el pedido, así se ve qué hora de llegada sufre más el estancamiento. "Pico" = dentro de la ventana de una hora pico definida en el reloj.';
+  } else if (TAB === 'etapas') {
+    const grupos = [...SEG_LINEA.map(x => ['linea', x]), ...SEG_SUC.map(x => ['sucursal', x]), [null, { n: 'Todos' }]];
+    const filas = grupos.map(([canal, sg]) => {
+      const os = S.registro.filter(o => !canal || (o.canal === canal && o.seg === sg.k));
+      const celdas = ETAPAS.map(([k]) => { const v = os.map(o => etapas(o)[k]).filter(x => x !== undefined); return `<td>${v.length ? f1(v.reduce((a, b) => a + b, 0) / v.length) : '—'}</td>`; }).join('');
+      return `<tr class="${canal ? '' : 'total'}"><td>${canal ? CANAL[canal] : 'Total'}</td><td>${canal ? `<i class="sw" style="background:${COLOR[sg.k]}"></i>` : ''}${sg.n}</td><td>${os.length}</td>${celdas}</tr>`;
+    });
+    tb.innerHTML = `<thead><tr><th colspan="3"></th><th colspan="3" class="grp">Recorrido del cliente</th><th colspan="5" class="grp">Cocina</th><th></th></tr>
+      <tr><th>Canal</th><th>Segmento</th><th>Pedidos</th>${ETAPAS.map(([, n]) => `<th>${n}</th>`).join('')}</tr></thead><tbody>${filas.join('')}</tbody>`;
+    $('formula').innerHTML = 'Promedios en minutos de los pedidos entregados. Cliente de sucursal: <b>Total = Sala antes de caja + Caja + Sala después de caja</b>; mientras espera en la sala después de caja, su pedido pasa por cola → parrilla / freidora (en paralelo) → ensamble. Pickup no pasa por caja; los pedidos en línea no tienen sala.';
+  } else if (TAB === 'reg') {
+    const hm = v => v === undefined ? '—' : hms(v), mn = v => v === undefined ? '—' : v.toFixed(1);
+    const ult = S.registro.slice(-150).reverse();
+    tb.innerHTML = `<thead><tr><th>#</th><th>Segmento</th><th>Canal</th><th>Llegada</th><th>Inicio caja</th><th>Fin caja</th><th>Inicio parrilla</th><th>Fin parrilla</th><th>Inicio freidora</th><th>Fin freidora</th><th>Entrega</th>
+      <th>Sala antes</th><th>Caja</th><th>Sala después</th><th>Total (min)</th></tr></thead><tbody>${ult.map(o => {
+        const e = etapas(o), seg = (o.canal === 'linea' ? SEG_LINEA : SEG_SUC).find(x => x.k === o.seg);
+        return `<tr><td>${o.id}</td><td style="text-align:left"><i class="sw" style="background:${COLOR[o.seg]}"></i>${seg.n}</td><td style="text-align:left">${CANAL[o.canal]}</td><td>${hm(o.tArr)}</td><td>${hm(o.tCajaIni)}</td><td>${hm(o.tCajaFin)}</td>
+          <td>${hm(o.parrIni)}</td><td>${hm(o.parrFin)}</td><td>${hm(o.freiIni)}</td><td>${hm(o.freiFin)}</td><td>${hm(o.tFin)}</td>
+          <td>${mn(e.salaAntes)}</td><td>${mn(e.caja)}</td><td>${mn(e.salaDespues)}</td><td><b style="color:${e.total > meta(o) ? 'var(--bad)' : 'inherit'}">${mn(e.total)}</b></td></tr>`;
+      }).join('')}</tbody>`;
+    $('formula').innerHTML = `Últimos ${ult.length} de ${S.registro.length} pedidos entregados (más reciente arriba; en rojo los que superan su meta). <button id="btnCSV">⬇ Descargar registro completo (CSV)</button>`;
   } else {
     // Comparación con fórmulas estacionarias M/M/c, con λ medio y con λ máximo del horario
     const fr = fracciones(), horas = P.horaCierre - P.horaApertura, lMed = demandaDia() / horas, lMax = LMAX();
@@ -860,6 +1029,28 @@ function dibujarGrafica() {
       leyenda = [`<span><i class="sw" style="background:var(--sPK)"></i>Intervalo entre llegadas observado (n = ${n})</span>`, `<span><i class="sw" style="background:var(--trend)"></i>Exponencial con λ̂ = ${lam.toFixed(1)} llegadas/h (media ${media.toFixed(2)} min)</span>`,
         `<span>CV = σ/μ = ${cv.toFixed(2)} (exponencial pura = 1; mayor a 1 indica que λ cambia durante el día)</span>`];
     } else leyenda = ['<span>Sin datos suficientes todavía</span>'];
+  } else if (modo === 'etapas') {
+    // Barras apiladas: recorrido promedio por segmento (los tramos suman el tiempo total)
+    const tramos = [['salaAntes', 'Sala antes de caja', 'var(--muted)'], ['caja', 'Caja', 'var(--accent)'], ['_colaCocina', 'Espera de cocina (cola)', 'var(--bad)'],
+      ['_prep', 'Parrilla / freidora', 'var(--sH)'], ['ensamble', 'Ensamble', 'var(--sP)']];
+    const grupos = [...SEG_LINEA.map(x => ['linea', x]), ...SEG_SUC.map(x => ['sucursal', x])];
+    const datos = grupos.map(([canal, sg]) => {
+      const os = S.registro.filter(o => o.canal === canal && o.seg === sg.k);
+      const prom = {}; for (const [k] of tramos) { const v = os.map(o => etapas(o)[k]).filter(x => x !== undefined && isFinite(x)); prom[k] = v.length ? v.reduce((a, b) => a + b, 0) / os.length : 0; }
+      return { n: `${CANAL[canal]} · ${sg.n}`, os: os.length, prom, tot: Object.values(prom).reduce((a, b) => a + b, 0) };
+    });
+    const L = 210, xmax = Math.ceil(Math.max(P.metaHP, ...datos.map(d => d.tot)) * 1.1 / 2) * 2, XX = v => L + v / xmax * (W - L - Pd.r);
+    const bh = (H - Pd.t - Pd.b) / datos.length;
+    for (let v = 0; v <= xmax; v += xmax > 20 ? 5 : 2) { el('line', { x1: XX(v), x2: XX(v), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--line)' }, svg); txt(svg, v, XX(v), H - 8, 11, 'var(--muted)'); }
+    txt(svg, 'minutos', W - Pd.r, H - 8 - 14, 10, 'var(--muted)', 'end');
+    datos.forEach((d, i) => {
+      const y = Pd.t + i * bh + bh * 0.18, h = bh * 0.64; let x = 0;
+      txt(svg, `${d.n} (${d.os})`, L - 8, y + h / 2 + 4, 11, 'var(--ink)', 'end');
+      for (const [k, , c] of tramos) { const v = d.prom[k]; if (v > 0) el('rect', { x: XX(x), y, width: XX(x + v) - XX(x), height: h, fill: c, 'fill-opacity': 0.85 }, svg); x += v; }
+      if (d.os) txt(svg, d.tot.toFixed(1), XX(d.tot) + 4, y + h / 2 + 4, 11, 'var(--muted)', 'start');
+    });
+    leyenda = tramos.map(([, n, c]) => `<span><i class="sw" style="background:${c}"></i>${n}</span>`);
+    leyenda.push('<span>Cada barra suma el tiempo total promedio del segmento</span>');
   } else {
     // Dispersión: pedidos en sistema al llegar vs tiempo total, con regresión lineal
     const hs = S.hechos, xmax = Math.max(5, ...hs.map(h => h.carga)) * 1.1;
@@ -910,6 +1101,14 @@ $('btnReset').onclick = () => reiniciar(+$('selHora').value);
 $('selHora').onchange = () => reiniciar(+$('selHora').value);
 $('selVel').onchange = e => VEL = +e.target.value;
 $('selChart').onchange = dibujarGrafica;
+$('formula').addEventListener('click', e => {
+  if (e.target.id !== 'btnCSV') return;
+  const cols = ['id', 'canal', 'segmento', 'llegada', 'inicio_caja', 'fin_caja', 'inicio_parrilla', 'fin_parrilla', 'inicio_freidora', 'fin_freidora', 'inicio_ensamble', 'entrega', ...ETAPAS.map(([k]) => k + '_min')];
+  const hm = v => v === undefined ? '' : hms(v), mn = v => v === undefined ? '' : v.toFixed(2);
+  const filas = S.registro.map(o => { const e = etapas(o); return [o.id, o.canal, o.seg, hm(o.tArr), hm(o.tCajaIni), hm(o.tCajaFin), hm(o.parrIni), hm(o.parrFin), hm(o.freiIni), hm(o.freiFin), hm(o.tEnsIni), hm(o.tFin), ...ETAPAS.map(([k]) => mn(e[k]))].join(','); });
+  const blob = new Blob(['﻿' + [cols.join(','), ...filas].join('\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'spe_registro_clientes.csv'; a.click(); URL.revokeObjectURL(a.href);
+});
 document.querySelector('.tabs').onclick = e => {
   const b = e.target.closest('button'); if (!b) return; TAB = b.dataset.tab;
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b)); dibujarTabla();
