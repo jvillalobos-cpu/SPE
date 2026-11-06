@@ -137,7 +137,8 @@
   <!-- ================= ZONA 1: simulación + reloj ================= -->
   <section class="top">
     <div class="panel">
-      <h2>Simulación de flujo y producción <span id="cuello" class="bottleneck ok">Flujo estable</span></h2>
+      <h2>Simulación de flujo y producción <span id="cuello" class="bottleneck ok">Flujo estable</span>
+        <label style="margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chkTray" checked> Mostrar trayectorias</label></h2>
       <svg id="plano" viewBox="0 0 960 480" role="img" aria-label="Plano de la hamburguesería">
         <defs>
           <pattern id="pTile" width="22" height="22" patternUnits="userSpaceOnUse">
@@ -154,10 +155,10 @@
           </pattern>
           <filter id="sombra" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".18"/></filter>
         </defs>
-        <g id="lyStatic"></g><g id="lyEnt"></g>
+        <g id="lyStatic"></g><g id="lyTrail"></g><g id="lyEnt"></g>
       </svg>
       <div class="legend">
-        <span>El color de la playera indica qué pidió el cliente (ver menú) · bolsita = pedido en línea · halo rojo = ya superó su tiempo meta · el anillo de cada carne o canasta muestra su avance</span>
+        <span><b>Recorrido sucursal:</b> 1 Entrada → 2 Fila → 3 Caja → 4 Sala de espera → 5 Entrega → Salida · <b>Pickup:</b> Entrada → Estante → Salida · <b>En línea:</b> app → cocina → reparto</span><span>Estela = camino recorrido · línea punteada = camino que le falta · color de playera = lo que pidió · halo rojo = superó su meta</span>
       </div>
       <div class="live" id="live"></div>
     </div>
@@ -176,8 +177,8 @@
         <button class="primary" id="btnPlay">⏸ Pausar</button>
         <select id="selVel" title="Velocidad de simulación">
           <option value="0.5">1 s = 30 s</option>
-          <option value="1">1 s = 1 min</option>
-          <option value="2" selected>1 s = 2 min</option>
+          <option value="1" selected>1 s = 1 min</option>
+          <option value="2">1 s = 2 min</option>
           <option value="5">1 s = 5 min</option>
           <option value="10">1 s = 10 min</option>
           <option value="20">1 s = 20 min</option>
@@ -308,7 +309,7 @@ function fracciones() {
 }
 
 // ---------------- Estado de simulación ----------------
-let S, VEL = 2, RUN = true;
+let S, VEL = 1, RUN = true, TRAY = true;
 function nuevoEstado(hora) {
   const st = {
     t: hora * 60, t0: hora * 60, seq: 0, fin: false,
@@ -437,7 +438,7 @@ function llegada(canal, seg, ta) {
   S.tUltLleg = ta;
   S.sistema.add(o);
   if (canal === 'linea') { crearEnt(o, 'ticket', POS.inbox); irA(o, [{ x: 620, y: 112 }, { x: 380, y: 112 }, POS.cocina], true); aCocina(o); }
-  else if (seg.k === 'PK') { crearEnt(o, 'persona', POS.puerta); S.pickup.push(o); aCocina(o); }
+  else if (seg.k === 'PK') { crearEnt(o, 'persona', POS.puerta); S.pickup.push(o); aCocina(o); }  // las rutas las traza posicionar()
   else { crearEnt(o, 'persona', POS.puerta); S.cajaQ.push(o); }
 }
 function aCocina(o) {
@@ -457,7 +458,13 @@ function listo(o) {
   if (o.canal === 'linea') { crearEnt(o, 'ticket', POS.despacho); irA(o, [{ x: 600, y: 120 }, { x: 975, y: 120 }], true); }
   else {
     S.espera = S.espera.filter(x => x !== o); S.pickup = S.pickup.filter(x => x !== o);
-    irA(o, [POS.entrega, { x: 648, y: 288 }, { x: 930, y: 288 }, { x: 975, y: 228 }], true);
+    const e = S.ents.get(o.id), x = e ? e.x : 400, y = e ? e.y : 360;
+    if (o.seg === 'PK') {                   // recoge su bolsa en el estante y sale
+      const cx = 771 + (o.id % 6) * 30;
+      irA(o, [{ x, y: 362 }, { x: cx, y: 362 }, { x: cx, y: 356 }, { x: 944, y: 362 }, { x: 944, y: 288 }, { x: 975, y: 228 }], true);
+    } else {                                // pasa a la barra de entrega y sale por el pasillo
+      irA(o, [{ x: 386, y }, POS.entrega, { x: 366, y: 290 }, { x: 930, y: 290 }, { x: 975, y: 228 }], true);
+    }
   }
 }
 
@@ -573,6 +580,7 @@ function construirPlano() {
   txt(g, 'en línea', 337, 43, 8, 'var(--muted)');
   for (let k = 0; k < 2; k++) el('rect', { x: 324 + k * 14, y: 54, width: 11, height: 14, rx: 2, fill: '#c9a27a', stroke: '#9c7a55' }, g);
   el('rect', { x: 320, y: 404, width: 34, height: 60, rx: 5, fill: 'var(--panel)', 'fill-opacity': 0.75 }, g);
+  txt(g, '5', 337, 418, 10, 'var(--accent)', 'middle', 800);
   txt(g, 'ENTREGA', 337, 430, 8, 'var(--ink)', 'middle', 700);
   txt(g, 'y pickup', 337, 441, 8, 'var(--muted)');
 
@@ -583,7 +591,7 @@ function construirPlano() {
     if (ch >= 30) staff(g, 330, y - 2);
     el('rect', { x: 344, y: y - ch / 2, width: 46, height: ch, rx: 8, fill: 'var(--panel)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
     r.pantalla = el('rect', { x: 351, y: y - ch / 2 + 5, width: 32, height: Math.max(6, ch - 22), rx: 3, fill: 'var(--ok)' }, g);
-    txt(g, `Caja ${i + 1}`, 367, y + ch / 2 - 5, ch < 26 ? 8 : 9, 'var(--ink)', 'middle', 600);
+    txt(g, `3 · Caja ${i + 1}`, 367, y + ch / 2 - 5, ch < 26 ? 7 : 8, 'var(--ink)', 'middle', 600);
     el('rect', { x: 351, y: y + ch / 2 + 1, width: 32, height: 3, rx: 1.5, fill: 'var(--line)' }, g);
     r.prog = el('rect', { x: 351, y: y + ch / 2 + 1, width: 0, height: 3, rx: 1.5, fill: 'var(--accent)' }, g);
     REF.cajas.push(r);
@@ -613,20 +621,20 @@ function construirPlano() {
   // ---------- Entrada
   el('rect', { x: 940, y: 196, width: 14, height: 64, rx: 3, fill: 'var(--counter)', stroke: 'var(--counterDark)' }, g);
   el('rect', { x: 906, y: 204, width: 30, height: 48, rx: 6, fill: 'var(--accent)', 'fill-opacity': 0.18 }, g);
-  pastilla(g, 948, 180, 'Entrada', { ancla: 'end', w: 64, color: 'var(--accent)' });
+  pastilla(g, 948, 180, '1 · Entrada', { ancla: 'end', w: 84, color: 'var(--accent)' });
   planta(g, 936, 286); planta(g, 892, 160);
 
   // ---------- Fila con postes y cinta
-  REF.colaCaja = pastilla(g, 440, 166, 'Fila para cajas: 0', { w: 122 });
+  REF.colaCaja = pastilla(g, 440, 166, '2 · Fila para cajas: 0', { w: 140 });
   for (const y of [206, 240, 272]) {
-    const xs = []; for (let x = 440; x <= 862; x += 70) xs.push(x);
+    const xs = []; for (let x = 440; x <= (y === 240 ? 792 : 862); x += 70.4) xs.push(Math.round(x));
     for (let k = 0; k < xs.length - 1; k++) el('path', { d: `M${xs[k]},${y - 6} Q${(xs[k] + xs[k + 1]) / 2},${y - 1} ${xs[k + 1]},${y - 6}`, fill: 'none', stroke: 'var(--bad)', 'stroke-width': 2, 'stroke-opacity': 0.55 }, g);
     for (const x of xs) { el('ellipse', { cx: x, cy: y + 2, rx: 4, ry: 1.6, fill: '#000', 'fill-opacity': 0.15 }, g); el('rect', { x: x - 1.5, y: y - 10, width: 3, height: 12, fill: 'var(--steelDark)' }, g); el('circle', { cx: x, cy: y - 10, r: 2.5, fill: 'var(--ink)' }, g); }
   }
 
   // ---------- Sala de espera con bancas
   el('rect', { x: 374, y: 300, width: 268, height: 168, rx: 14, fill: 'var(--rug)', stroke: 'var(--line)' }, g);
-  REF.txtEspera = pastilla(g, 384, 318, 'Sala de espera: 0', { w: 124 });
+  REF.txtEspera = pastilla(g, 384, 318, '4 · Sala de espera: 0', { w: 142 });
   for (let r = 0; r < 4; r++) el('rect', { x: 382, y: 352 + r * 30 + 8, width: 252, height: 6, rx: 3, fill: 'var(--counter)', 'fill-opacity': 0.8 }, g);
   planta(g, 624, 318);
 
@@ -638,13 +646,15 @@ function construirPlano() {
   REF.cubbies = []; for (let k = 0; k < 6; k++) REF.cubbies.push(el('rect', { x: 764 + k * 30, y: 322, width: 14, height: 16, rx: 2, fill: 'var(--sPK)', opacity: 0 }, g));
 }
 
-// Entidades animadas (personas y bolsas de pedidos en línea)
+// Entidades animadas (personas y bolsas de pedidos en línea) con estela y ruta planeada
 function crearEnt(o, tipo, pos) {
   if (S.ents.has(o.id)) return;
-  const g = el('g', {}, $('lyEnt')), c = COLOR[o.seg];
-  el('ellipse', { cx: 0, cy: 10, rx: 7, ry: 2.4, fill: '#000', 'fill-opacity': 0.16 }, g);
-  const halo = el('circle', { cx: 0, cy: 2, r: 12, fill: 'var(--bad)', 'fill-opacity': 0.28, opacity: 0 }, g);
+  const g = el('g', {}, $('lyEnt')), c = COLOR[o.seg], e = { o, g, x: pos.x, y: pos.y, ruta: [], borrar: false, fase: Math.random() * 6, zona: tipo === 'persona' ? 'entrada' : 'linea', trail: [] };
+  el('ellipse', { cx: 0, cy: 14, rx: 7, ry: 2.4, fill: '#000', 'fill-opacity': 0.16 }, g);
+  e.halo = el('circle', { cx: 0, cy: 3, r: 13, fill: 'var(--bad)', 'fill-opacity': 0.28, opacity: 0 }, g);
   if (tipo === 'persona') {
+    e.p1 = el('line', { x1: -2.5, y1: 9, x2: -2.5, y2: 14, stroke: '#3a3f4a', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
+    e.p2 = el('line', { x1: 2.5, y1: 9, x2: 2.5, y2: 14, stroke: '#3a3f4a', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
     el('path', { d: 'M-7,10 C-7,0 7,0 7,10 Z', fill: c }, g);
     el('circle', { cx: 0, cy: -3.5, r: 5, fill: PIEL[o.id % PIEL.length] }, g);
     el('path', { d: 'M-5,-5 Q0,-11 5,-5 Q0,-7.5 -5,-5 Z', fill: ['#3b2a20', '#1d1d1d', '#6b4a2b', '#c49a5a'][o.id % 4] }, g);
@@ -653,32 +663,60 @@ function crearEnt(o, tipo, pos) {
     el('path', { d: 'M-3.5,-3 Q0,-9 3.5,-3', fill: 'none', stroke: c, 'stroke-width': 1.8 }, g);
     el('path', { d: 'M-3,3 h6', stroke: '#fff', 'stroke-width': 1.6, 'stroke-linecap': 'round' }, g);
   }
-  S.ents.set(o.id, { o, g, halo, x: pos.x, y: pos.y, ruta: [], borrar: false, fase: Math.random() * 6 });
+  e.tEl = el('polyline', { fill: 'none', stroke: c, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-opacity': 0.45 }, $('lyTrail'));
+  e.pEl = el('polyline', { fill: 'none', stroke: c, 'stroke-width': 1.6, 'stroke-dasharray': '2 5', 'stroke-linecap': 'round', 'stroke-opacity': 0.7 }, $('lyTrail'));
+  S.ents.set(o.id, e);
 }
-function irA(o, ruta, borrar = false) { const e = S.ents.get(o.id); if (e) { e.ruta = ruta.slice(); e.borrar = borrar; } }
-function apuntar(o, p) {
+function irA(o, ruta, borrar = false) { const e = S.ents.get(o.id); if (e) { e.ruta = ruta.slice(); e.borrar = borrar; e.zona = 'salida'; } }
+const carril = y => (y < 239 ? 1 : 2);
+// Traza el camino por pasillos según de qué zona viene y a cuál va
+function rutaHacia(e, zona, p) {
+  const de = e.zona;
+  if (zona === 'fila') {
+    if (de === 'entrada') return [{ x: 925, y: 228 }, { x: 882, y: p.y }, p];
+    if (carril(e.y) !== carril(p.y)) return [{ x: 882, y: e.y }, { x: 882, y: p.y }, p];   // vuelta de la serpentina
+    return [p];
+  }
+  if (zona === 'caja') return de === 'fila' ? [{ x: Math.max(430, Math.min(e.x, 452)), y: e.y }, { x: 426, y: 222 }, p] : [p];
+  if (zona === 'sala') return de === 'caja' ? [{ x: 410, y: 292 }, { x: p.x, y: 332 }, p] : [p];
+  if (zona === 'pickup') return de === 'entrada' ? [{ x: 925, y: 228 }, { x: 925, y: 290 }, { x: 716, y: 290 }, { x: 716, y: 362 }, p] : [p];
+  return [p];
+}
+function apuntar(o, p, zona) {
   const e = S.ents.get(o.id); if (!e || e.borrar) return;
   const ult = e.ruta[e.ruta.length - 1] || { x: e.x, y: e.y };
-  if (Math.abs(ult.x - p.x) > 0.5 || Math.abs(ult.y - p.y) > 0.5) e.ruta = [p];
+  if (e.zona === zona && Math.abs(ult.x - p.x) < 0.5 && Math.abs(ult.y - p.y) < 0.5) return;
+  e.ruta = rutaHacia(e, zona, p); e.zona = zona;
 }
 function posicionar() {
-  S.cajaQ.forEach((o, i) => apuntar(o, pFila(i)));
-  S.cajas.forEach((c, i) => c.o && apuntar(c.o, { x: 408, y: cajaY(i) }));
-  S.espera.forEach((o, i) => apuntar(o, pEspera(i)));
-  S.pickup.forEach((o, i) => apuntar(o, pPickup(i)));
+  S.cajaQ.forEach((o, i) => apuntar(o, pFila(i), 'fila'));
+  S.cajas.forEach((c, i) => c.o && apuntar(c.o, { x: 408, y: cajaY(i) }, 'caja'));
+  S.espera.forEach((o, i) => apuntar(o, pEspera(i), 'sala'));
+  S.pickup.forEach((o, i) => apuntar(o, pPickup(i), 'pickup'));
 }
+function largoRuta(e) { let L = 0, x = e.x, y = e.y; for (const p of e.ruta) { L += Math.hypot(p.x - x, p.y - y); x = p.x; y = p.y; } return L; }
 function animar(realDt) {
-  const v = 150 * Math.max(1, VEL) * realDt, now = performance.now() / 1000;
+  const base = Math.min(300, 90 * Math.sqrt(Math.max(1, VEL))), now = performance.now() / 1000;
   for (const [id, e] of S.ents) {
-    let paso = v; const mov = e.ruta.length > 0;
+    const L = largoRuta(e), mov = L > 0.5;
+    let paso = Math.max(base, L / 2.2) * realDt;        // velocidad de caminata; si va muy atrasado, acelera para llegar en ~2 s
     while (paso > 0 && e.ruta.length) {
       const p = e.ruta[0], dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy);
       if (d <= paso) { e.x = p.x; e.y = p.y; e.ruta.shift(); paso -= d; } else { e.x += dx / d * paso; e.y += dy / d * paso; paso = 0; }
     }
-    if (!e.ruta.length && e.borrar) { e.g.remove(); S.ents.delete(id); continue; }
+    // Estela: agrega puntos al moverse; se desvanece al detenerse
+    const ult = e.trail[e.trail.length - 1];
+    if (!ult || Math.hypot(ult[0] - e.x, ult[1] - e.y) > 3) e.trail.push([e.x, e.y + 12]);
+    if (e.trail.length > 70 || (!mov && e.trail.length)) e.trail.splice(0, mov ? 1 : Math.max(1, Math.ceil(e.trail.length * 0.04)));
+    if (!e.ruta.length && e.borrar) { e.g.remove(); e.tEl.remove(); e.pEl.remove(); S.ents.delete(id); continue; }
+    if (TRAY) {
+      e.tEl.setAttribute('points', e.trail.map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '));
+      e.pEl.setAttribute('points', mov ? [[e.x, e.y + 12], ...e.ruta.map(q => [q.x, q.y + 12])].map(q => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ') : '');
+    }
     const tarde = S.sistema.has(e.o) && S.t - e.o.tArr > meta(e.o);
     e.halo.setAttribute('opacity', tarde ? 0.6 + 0.4 * Math.sin(now * 5 + e.fase) : 0);
-    const bob = mov ? Math.abs(Math.sin(now * 12 + e.fase)) * -2.2 : 0;
+    const ciclo = Math.sin(now * 13 + e.fase), bob = mov ? -Math.abs(ciclo) * 1.8 : 0;
+    if (e.p1) { const sw = mov ? ciclo * 2.6 : 0; e.p1.setAttribute('x2', -2.5 + sw); e.p2.setAttribute('x2', 2.5 - sw); }
     e.g.setAttribute('transform', `translate(${e.x.toFixed(1)},${(e.y + bob).toFixed(1)})`);
   }
 }
@@ -727,8 +765,8 @@ function dibujarDinamico() {
   });
   colaChip(REF.colaFrei, `cola: ${S.fryQ.length} papas`, S.fryQ.length, S.frei.flat().length);
   colaChip(REF.colaParr, `cola: ${S.burgerQ.length} hamburguesas`, S.burgerQ.length, S.parr.flat().length);
-  colaChip(REF.colaCaja, `Fila para cajas: ${S.cajaQ.length}`, S.cajaQ.length, S.cajas.length * 3);
-  REF.txtEspera.t.textContent = `Sala de espera: ${S.espera.length}`;
+  colaChip(REF.colaCaja, `2 · Fila para cajas: ${S.cajaQ.length}`, S.cajaQ.length, S.cajas.length * 3);
+  REF.txtEspera.t.textContent = `4 · Sala de espera: ${S.espera.length}`;
   REF.txtPickup.t.textContent = `Pickup: ${S.pickup.length}`;
   REF.cubbies.forEach((c, k) => c.setAttribute('opacity', k < S.pickup.length ? 0.85 : 0));
   const enCocinaL = [...S.sistema].filter(o => o.canal === 'linea').length;
@@ -1074,6 +1112,7 @@ function dibujarGrafica() {
 // ---------------- Control ----------------
 function reiniciar(hora) {
   if (S) for (const e of S.ents.values()) e.g.remove();
+  $('lyTrail').innerHTML = '';
   S = nuevoEstado(hora); syncCapacidad(); construirPlano();
   RUN = true; botonPlay(); actualizarUI();
 }
@@ -1100,6 +1139,7 @@ $('btnPlay').onclick = () => { if (S.fin) reiniciar(P.horaApertura); else { RUN 
 $('btnReset').onclick = () => reiniciar(+$('selHora').value);
 $('selHora').onchange = () => reiniciar(+$('selHora').value);
 $('selVel').onchange = e => VEL = +e.target.value;
+$('chkTray').onchange = e => { TRAY = e.target.checked; $('lyTrail').style.display = TRAY ? '' : 'none'; };
 $('selChart').onchange = dibujarGrafica;
 $('formula').addEventListener('click', e => {
   if (e.target.id !== 'btnCSV') return;
