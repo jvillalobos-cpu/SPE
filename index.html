@@ -63,7 +63,7 @@
   .bottleneck.bad { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
   .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); flex-wrap: wrap; margin-top: 6px; }
   .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
-  .live { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 10px; }
+  .live { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 10px; }
   .live div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
   .live b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
   .live span { font-size: 11px; color: var(--muted); }
@@ -207,6 +207,11 @@
     <div class="filtros" id="filtros"></div>
     <div class="card" style="margin-top:12px">
       <div class="mix" id="mix"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>Tiempo de espera promedio y tiempo de ciclo <span class="muted" style="font-weight:400">· calculado con los filtros capturados y comparado con la simulación</span></h3>
+      <div class="table-wrap"><table id="tablaTiempos"></table></div>
+      <div class="formula" id="notaTiempos"></div>
     </div>
   </section>
 
@@ -442,7 +447,7 @@ function llegada(seg, ta) {
 }
 // Sale de caja: el pedido entra a cocina siguiendo el diagrama de decisión
 function aCocina(o) {
-  o.tCocina = S.t; o.pendientes = o.b + o.f; o.enProceso = 0; o.salaB = 0; o.decision = {};
+  o.tCocina = S.t; o.pendientes = o.b + o.f; o.enProceso = 0; o.salaB = 0; o.decision = {}; o.sec = P.secuencial;
   o.pasos = o.b && o.f ? ['frei', 'parr'] : o.b ? ['parr'] : ['frei'];   // H+P: primero papas, luego hamburguesa
   S.cocina.push(o);
   lanzar(o);
@@ -886,6 +891,66 @@ function derivados() {
   ];
   $('minimos').innerHTML = `Tiempo mínimo sin colas: hamburguesa ${(P.tHamburguesa + P.tEnsamble).toFixed(1)} · hamb. y papas ${((P.secuencial ? P.tHamburguesa + P.tPapas : Math.max(P.tHamburguesa, P.tPapas)) + P.tEnsamble).toFixed(1)} · papas ${(P.tPapas + P.tEnsamble).toFixed(1)} min`;
   d.forEach((s, i) => $('der' + i).innerHTML = s);
+  if (S) dibujarTiempos();
+}
+// ---------------- Tiempos de espera y de ciclo (modelo analítico) ----------------
+// Cada etapa es una cola M/G/c. Espera en cola con la aproximación de Allen–Cunneen:
+//   Wq ≈ [ErlangC(c, λ/μ) / (c·μ − λ)] · (Ca² + Cs²)/2,  con Ca² = 1 (llegadas Poisson) y Cs = variabilidad capturada.
+function wqEtapa(lam, tServ, c) {
+  const mu = 60 / tServ, rho = lam / (c * mu);
+  if (lam <= 0) return { rho: 0, wq: 0 };
+  if (rho >= 1) return { rho, wq: Infinity };
+  const cs2 = (P.variabilidad / 100) ** 2;
+  return { rho, wq: Stats.erlangC(lam, mu, c) / (c * mu - lam) * 60 * (1 + cs2) / 2 };
+}
+function tiemposTeoricos(lam) {
+  const fr = fracciones(), M = norm(P.mix);
+  const caja = wqEtapa(lam, P.tCaja, P.cajas);
+  const parr = wqEtapa(lam * fr.burger, P.tHamburguesa, P.parrillas * P.slotsParrilla);
+  const frei = wqEtapa(lam * fr.fries, P.tPapas, P.freidoras * P.canastas);
+  const base = caja.wq + P.tCaja, ens = P.tEnsamble;
+  const prod = {
+    H: { espera: caja.wq + parr.wq, ciclo: base + parr.wq + P.tHamburguesa + ens },
+    P: { espera: caja.wq + frei.wq, ciclo: base + frei.wq + P.tPapas + ens },
+    HP: P.secuencial
+      ? { espera: caja.wq + frei.wq + parr.wq, ciclo: base + frei.wq + P.tPapas + parr.wq + P.tHamburguesa + ens }
+      : (() => { const k = Math.max(frei.wq + P.tPapas, parr.wq + P.tHamburguesa); return { espera: caja.wq + k - Math.max(P.tPapas, P.tHamburguesa), ciclo: base + k + ens }; })(),
+  };
+  prod.prom = { espera: M.H * prod.H.espera + M.HP * prod.HP.espera + M.P * prod.P.espera, ciclo: M.H * prod.H.ciclo + M.HP * prod.HP.ciclo + M.P * prod.P.ciclo };
+  return { caja, parr, frei, prod };
+}
+// Espera real de un pedido simulado = tiempo total − (atención en caja + cocción/fritura + ensamble)
+function esperaReal(o) {
+  const parr = o.parrIni !== undefined ? o.parrFin - o.parrIni : 0, frei = o.freiIni !== undefined ? o.freiFin - o.freiIni : 0;
+  return (o.tFin - o.tArr) - (o.tCajaFin - o.tCajaIni) - (o.sec ? parr + frei : Math.max(parr, frei)) - (o.tFin - o.tEnsIni);
+}
+function dibujarTiempos() {
+  if (!$('tablaTiempos')) return;
+  const horas = P.horaCierre - P.horaApertura, esc = [
+    ['Hora valle', P.clientesBase], ['Promedio del día', demandaDia() / horas], ['Hora pico', LMAX()],
+  ].map(([n, l]) => ({ n, l, r: tiemposTeoricos(l) }));
+  const fmt = v => isFinite(v) ? v.toFixed(1) : '<span class="pill bad">∞ saturado</span>';
+  const colorMeta = (v, m) => !isFinite(v) ? '' : v > m ? 'color:var(--bad);font-weight:600' : v > m * 0.85 ? 'color:var(--warn);font-weight:600' : '';
+  const sim = k => { const os = S.registro.filter(o => !k || o.seg === k); if (!os.length) return null;
+    return { espera: os.reduce((a, o) => a + esperaReal(o), 0) / os.length, ciclo: os.reduce((a, o) => a + (o.tFin - o.tArr), 0) / os.length, n: os.length }; };
+  const filas = [['H', 'Hamburguesa', P.metaH], ['HP', 'Hamburguesa + papas', P.metaHP], ['P', 'Solo papas', P.metaP], ['prom', 'Promedio ponderado (mezcla)', null]].map(([k, n, m]) => {
+    const sm = sim(k === 'prom' ? null : k), mm = m ?? (norm(P.mix).H * P.metaH + norm(P.mix).HP * P.metaHP + norm(P.mix).P * P.metaP);
+    return `<tr class="${k === 'prom' ? 'total' : ''}"><td>${k === 'prom' ? '' : `<i class="sw" style="background:${COLOR[k]}"></i>`}${n}</td>${esc.map(e =>
+      `<td>${fmt(e.r.prod[k].espera)}</td><td style="${colorMeta(e.r.prod[k].ciclo, mm)}">${fmt(e.r.prod[k].ciclo)}</td>`).join('')}
+      <td>${sm ? sm.espera.toFixed(1) : '—'}</td><td style="${sm ? colorMeta(sm.ciclo, mm) : ''}">${sm ? sm.ciclo.toFixed(1) : '—'}</td><td>${mm.toFixed(1)}</td></tr>`;
+  });
+  const rhoFila = `<tr><td class="muted">Ocupación ρ (caja · parrilla · freidora)</td>${esc.map(e => `<td colspan="2" class="muted">${[e.r.caja, e.r.parr, e.r.frei].map(x => Math.round(x.rho * 100) + '%').join(' · ')}</td>`).join('')}<td colspan="3"></td></tr>`;
+  $('tablaTiempos').innerHTML = `<thead><tr><th></th>${esc.map(e => `<th colspan="2" class="grp">${e.n} · ${e.l.toFixed(0)} clientes/h</th>`).join('')}<th colspan="2" class="grp">Simulado hasta ahora</th><th></th></tr>
+    <tr><th>Producto</th>${esc.map(() => '<th>Espera prom. (min)</th><th>Tiempo de ciclo (min)</th>').join('')}<th>Espera prom.</th><th>Tiempo de ciclo</th><th>Meta</th></tr></thead><tbody>${filas.join('')}${rhoFila}</tbody>`;
+  // Cadencia del cuello de botella (tiempo de ciclo de producción)
+  const fr = fracciones(), cap = [
+    ['Cajas', P.cajas * 60 / P.tCaja], ['Parrillas', fr.burger ? P.parrillas * P.slotsParrilla * 60 / P.tHamburguesa / fr.burger : Infinity],
+    ['Freidoras', fr.fries ? P.freidoras * P.canastas * 60 / P.tPapas / fr.fries : Infinity],
+  ].sort((a, b) => a[1] - b[1]);
+  $('notaTiempos').innerHTML = `<b>Espera promedio</b> = tiempo sentado o formado sin ser atendido (sala antes de caja + espera por parrilla/freidora). ` +
+    `<b>Tiempo de ciclo</b> = desde que entra hasta que recibe su pedido (espera + caja ${P.tCaja} + cocción/fritura + ensamble ${P.tEnsamble} min). ` +
+    `Cálculo por etapa como cola M/G/c (Erlang C con ajuste de Allen–Cunneen por la variabilidad de ${P.variabilidad}%). En rojo: supera la meta. ` +
+    `<br><b>Ritmo del cuello de botella:</b> ${cap[0][0]} — puede despachar hasta ${cap[0][1].toFixed(0)} pedidos/h, es decir <b>1 pedido cada ${(60 / cap[0][1]).toFixed(2)} min</b>; si llegan más clientes que eso, la espera crece sin límite.`;
 }
 function reprogramar() { if (S) S.tNext = S.t + expo(LMAX()); }
 function demandaDia() { let s = 0; for (let h = P.horaApertura; h < P.horaCierre; h += 0.05) s += lambdaTotal(h) * 0.05; return s; }
@@ -897,9 +962,10 @@ function dibujarLive() {
   const ult = S.hechos.filter(x => x.t > S.t - 60).length;
   const items = [
     ['En el sistema', S.sistema.size], ['Pedidos entregados', ent],
-    ['Tiempo total prom.', ent ? (sum / ent).toFixed(1) + ' min' : '—'],
+    ['Espera promedio', S.registro.length ? (S.registro.reduce((a, o) => a + esperaReal(o), 0) / S.registro.length).toFixed(1) + ' min' : '—'],
+    ['Tiempo de ciclo prom.', ent ? (sum / ent).toFixed(1) + ' min' : '—'],
     ['Dentro de meta', ent ? Math.round(enMeta / ent * 100) + '%' : '—'],
-    ['Producción últimos 60 min', ult + ' ped'],
+    ['Producción (últ. 60 min)', ult + ' ped'],
   ];
   $('live').innerHTML = items.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
 }
@@ -1125,7 +1191,7 @@ function opcionesHora() {
   if (v && +v >= P.horaApertura && +v < P.horaCierre) $('selHora').value = v;
   $('inApertura').value = P.horaApertura; $('inCierre').value = P.horaCierre;
 }
-function actualizarUI() { dibujarLive(); dibujarTabla(); dibujarGrafica(); relojKV(); dibujarDemanda(); cuello(); }
+function actualizarUI() { dibujarTiempos(); dibujarLive(); dibujarTabla(); dibujarGrafica(); relojKV(); dibujarDemanda(); cuello(); }
 
 let last = performance.now(), lastUI = 0;
 function frame(now) {
