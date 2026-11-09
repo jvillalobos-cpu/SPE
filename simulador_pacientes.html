@@ -8,7 +8,7 @@
   :root {
     --bg: #f2f5f4; --panel: #ffffff; --ink: #17262b; --muted: #64767b; --line: #d5dedc;
     --accent: #0f7b8a; --ok: #2e9e6a; --warn: #d9a12b; --bad: #d64545; --trend: #d9822b;
-    --tC: #e07b28; --tIC: #3b6fd4; --tI: #12a19a;
+    --tC: #e07b28; --tIC: #3b6fd4; --tI: #12a19a; --tA: #8a5cd6; --sxH: #3b6fd4; --sxM: #d65a9a; --agua: #7cc4e8;
     --zona: #eaf1f0; --floor: #f6f3ee; --floorLine: #ece6dc; --wood: #c9955f; --woodDark: #a6743f;
     --steel: #dfe6ea; --steelDark: #9aa7b0; --plant: #5ea56b; --coat: #f4f7f9; --scrub: #3d6a8a;
   }
@@ -16,7 +16,7 @@
     :root:not([data-theme="light"]) {
       --bg: #101719; --panel: #182226; --ink: #e4eceb; --muted: #8fa3a7; --line: #2a3a3e;
       --accent: #4fc3d1; --ok: #4cc28d; --warn: #e8bb52; --bad: #ef6b6b; --trend: #f0a35a;
-      --tC: #f0954a; --tIC: #6b9cff; --tI: #3cc4bc;
+      --tC: #f0954a; --tIC: #6b9cff; --tI: #3cc4bc; --tA: #a888ec; --sxH: #6b9cff; --sxM: #ec85bb; --agua: #7cc4e8;
       --zona: #1d2a2e; --floor: #1a2123; --floorLine: #222b2e; --wood: #8a6440; --woodDark: #6b4c2f;
       --steel: #34434a; --steelDark: #56666e; --plant: #4f8f5a; --coat: #c9d3d8; --scrub: #6f9cbc;
     }
@@ -24,7 +24,7 @@
   :root[data-theme="dark"] {
     --bg: #101719; --panel: #182226; --ink: #e4eceb; --muted: #8fa3a7; --line: #2a3a3e;
     --accent: #4fc3d1; --ok: #4cc28d; --warn: #e8bb52; --bad: #ef6b6b; --trend: #f0a35a;
-    --tC: #f0954a; --tIC: #6b9cff; --tI: #3cc4bc;
+    --tC: #f0954a; --tIC: #6b9cff; --tI: #3cc4bc; --tA: #a888ec; --sxH: #6b9cff; --sxM: #ec85bb; --agua: #7cc4e8;
     --zona: #1d2a2e; --floor: #1a2123; --floorLine: #222b2e; --wood: #8a6440; --woodDark: #6b4c2f;
     --steel: #34434a; --steelDark: #56666e; --plant: #4f8f5a; --coat: #c9d3d8; --scrub: #6f9cbc;
   }
@@ -113,8 +113,8 @@
     <h2><span style="text-transform:none;letter-spacing:0;color:var(--ink);font-size:18px">Simulador de flujo de pacientes</span>
       <span id="cuello" class="bottleneck ok">Flujo estable</span>
       <label style="margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chkTray" checked> Mostrar trayectorias</label></h2>
-    <div class="muted sm" style="margin-bottom:8px">Recepción → InBody → Consulta. Cada paciente recorre solo las etapas de su tipo de visita: si hay lugar libre pasa directo; si no, espera sentado en la sala.</div>
-    <svg id="plano" viewBox="0 0 960 470" role="img" aria-label="Plano del hospital">
+    <div class="muted sm" style="margin-bottom:8px">Recepción → Antidoping (baño de toma de muestra) → InBody → Consulta. Cada paciente recorre solo las etapas de su visita: si hay lugar libre pasa directo; si no, espera sentado en la sala. Mientras espera puede ir al baño general sin perder su turno.</div>
+    <svg id="plano" viewBox="0 0 960 600" role="img" aria-label="Plano del hospital">
       <defs>
         <pattern id="pFloor" width="120" height="24" patternUnits="userSpaceOnUse">
           <rect width="120" height="24" style="fill:var(--floor)"/><path d="M0 23.5H120M50 0V24" fill="none" style="stroke:var(--floorLine)" stroke-width="1.5"/>
@@ -161,7 +161,7 @@
 <!-- ================= ZONA 3: tablas ================= -->
 <section class="panel">
   <h2>Estadística
-    <span class="tabs"><button data-tab="tipo" class="on">Por tipo de visita</button><button data-tab="franja">Por franja (30 min)</button><button data-tab="etapas">Tiempos por etapa</button><button data-tab="reg">Registro por paciente</button><button data-tab="teo">Teórico vs simulado</button></span>
+    <span class="tabs"><button data-tab="tipo" class="on">Por variante de visita</button><button data-tab="franja">Por franja (30 min)</button><button data-tab="etapas">Tiempos por etapa</button><button data-tab="reg">Registro por paciente</button><button data-tab="teo">Teórico vs simulado</button></span>
   </h2>
   <div class="tw" id="tw"><table id="tabla"></table></div>
   <div class="nota" id="nota"></div>
@@ -177,7 +177,7 @@
       <option value="expo">Tiempo entre llegadas: exponencial</option>
       <option value="campana">Campana: distribución del tiempo total</option>
       <option value="dispersion">Dispersión: pacientes en el hospital al llegar vs tiempo total</option>
-      <option value="etapas">Tiempos por etapa (promedio por tipo de visita)</option>
+      <option value="etapas">Tiempos por etapa (promedio por variante de visita)</option>
     </select>
   </h2>
   <svg id="chart"></svg>
@@ -189,8 +189,10 @@
 <script>
 /* =====================================================================
    Simulador de flujo de pacientes — basado en SPE
-   Llegadas Poisson no homogéneas → Recepción → InBody → Consultorios (según tipo de visita)
+   Llegadas Poisson no homogéneas → Recepción → Antidoping → InBody → Consultorios (según la variante de visita)
    En cada etapa: ¿hay lugar libre? Sí → pasa directo · No → espera sentado en la sala (FIFO)
+   Antidoping: baño de toma de muestra supervisada, por sexo; si la muestra no alcanza → hidratación y reintento
+   Baños generales: por sexo; el paciente va mientras espera su siguiente etapa y conserva su turno
    ===================================================================== */
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -209,20 +211,32 @@ const TIPOS = [
   { k: 'C', n: 'Solo consulta', ib: 0, co: 1 },
   { k: 'IC', n: 'InBody + Consulta', ib: 1, co: 1 },
   { k: 'I', n: 'Solo InBody', ib: 1, co: 0 },
+  { k: 'A', n: 'Solo antidoping', ib: 0, co: 0 },
 ];
-const COLOR = { C: 'var(--tC)', IC: 'var(--tIC)', I: 'var(--tI)' };
-const ETA = [   // clave, nombre, # servidores, tiempo, texto de espera, zona en el plano [x, ancho]
-  { k: 'rec', n: 'Recepción', nk: 'nRec', tk: 'tRec', e: 'recepción', x: 20, w: 240, srv: 'recepciones' },
-  { k: 'ib', n: 'InBody', nk: 'nIb', tk: 'tIb', e: 'InBody', x: 280, w: 300, srv: 'equipos' },
-  { k: 'co', n: 'Consultorios', nk: 'nCo', tk: 'tCo', e: 'consulta', x: 600, w: 340, srv: 'consultorios' },
+// Todas las vertientes: cada tipo con o sin antidoping, más "solo antidoping"
+const VAR = [
+  { v: 'C', k: 'C', ad: 0, n: 'Solo consulta' }, { v: 'C+AD', k: 'C', ad: 1, n: 'Consulta + antidoping' },
+  { v: 'IC', k: 'IC', ad: 0, n: 'InBody + Consulta' }, { v: 'IC+AD', k: 'IC', ad: 1, n: 'InBody + Consulta + antidoping' },
+  { v: 'I', k: 'I', ad: 0, n: 'Solo InBody' }, { v: 'I+AD', k: 'I', ad: 1, n: 'InBody + antidoping' },
+  { v: 'A', k: 'A', ad: 1, n: 'Solo antidoping' },
+];
+const COLOR = { C: 'var(--tC)', IC: 'var(--tIC)', I: 'var(--tI)', A: 'var(--tA)' };
+const ETA = [   // etapas del recorrido y su zona en el plano [x, ancho]
+  { k: 'rec', n: 'Recepción', tk: 'tRec', e: 'recepción', x: 20, w: 180, srv: 'recepciones' },
+  { k: 'ad', n: 'Antidoping', tk: 'tAd', e: 'antidoping', x: 210, w: 230, srv: 'baños de toma' },
+  { k: 'ib', n: 'InBody', tk: 'tIb', e: 'InBody', x: 450, w: 200, srv: 'equipos' },
+  { k: 'co', n: 'Consultorios', tk: 'tCo', e: 'consulta', x: 660, w: 280, srv: 'consultorios' },
 ];
 const ETK = Object.fromEntries(ETA.map(e => [e.k, e]));
 const DEF = {
-  open: 420, close: 1080, base: 15,
+  open: 420, close: 1080, base: 15, pctMuj: 50,
   picos: [{ t: 540, extra: 15, w: 1.5 }, { t: 780, extra: 10, w: 1.5 }],
-  mix: { C: 40, IC: 35, I: 25 },
-  nRec: 2, tRec: 3, nIb: 2, tIb: 5, nCo: 4, tCo: 18,
-  cv: 30, meta: { C: 35, IC: 45, I: 20 },
+  mix: { C: 35, IC: 30, I: 20, A: 15 }, pctAd: 20,
+  nRec: 2, tRec: 3,
+  adH: 1, adM: 1, tAd: 8, pFalla: 15, tHidr: 15, maxInt: 3,
+  nIb: 2, tIb: 5, nCo: 4, tCo: 18,
+  wcH: 1, wcM: 1, tWc: 4, pWc: 20,
+  cv: 30, meta: { C: 35, IC: 45, I: 20, A: 25 }, metaAd: 15,
 };
 let P = JSON.parse(JSON.stringify(DEF)), S, LM = 1, VEL = 1, RUN = true, TRAY = true;
 
@@ -254,9 +268,11 @@ const expo = l => -Math.log(1 - Math.random()) / l * 60;
 const norm = () => { const t = Object.values(P.mix).reduce((s, v) => s + Math.max(0, v), 0) || 1, o = {}; for (const k in P.mix) o[k] = Math.max(0, P.mix[k]) / t; return o; };
 const getP = k => k.includes('.') ? P[k.split('.')[0]][k.split('.')[1]] : P[k];
 const setP = (k, v) => { if (k.includes('.')) { const [a, b] = k.split('.'); P[a][b] = v; } else P[k] = v; };
-const meta = p => P.meta[p.k];
+const metaVar = v => P.meta[v.k] + (v.ad && v.k !== 'A' ? P.metaAd : 0);
+const meta = p => P.meta[p.k] + (p.ad && p.k !== 'A' ? P.metaAd : 0);
+const pesoVar = (v, m = norm()) => m[v.k] * (v.k === 'A' ? 1 : v.ad ? P.pctAd / 100 : 1 - P.pctAd / 100);
+const nombreVar = p => VAR.find(v => v.v === p.v).n;
 
-// Demanda λ(t) en pacientes/h (m = minuto del día)
 function lam(m) {
   if (m < P.open || m >= P.close) return 0;
   let l = P.base; for (const p of P.picos) l += p.extra * Math.exp(-(((m - p.t) / 60) ** 2) / (2 * Math.max(0.1, p.w) ** 2));
@@ -265,50 +281,104 @@ function lam(m) {
 function lmax() { let x = 0; for (let m = P.open; m < P.close; m += 5) x = Math.max(x, lam(m)); return Math.max(x, 1e-6); }
 function demandaDia() { let s = 0; for (let m = P.open; m < P.close; m += 3) s += lam(m) * 3 / 60; return s; }
 function picoAct(m) { return P.picos.find(p => Math.abs(m - p.t) <= p.w * 60); }
-// Fracción de pacientes que pasa por cada etapa
-function fracciones() { const m = norm(); return { rec: 1, ib: m.IC + m.I, co: m.C + m.IC }; }
+// Intentos esperados de antidoping por paciente: 1 + p + p² + … (hasta el máximo de intentos)
+const intentosEsp = () => { const p = Math.min(0.99, P.pFalla / 100); let s = 0; for (let n = 0; n < P.maxInt; n++) s += p ** n; return s; };
+function fracciones() {
+  const m = norm(), ad = m.A + (m.C + m.IC + m.I) * P.pctAd / 100;
+  return { rec: 1, ad, ib: m.IC + m.I, co: m.C + m.IC, wc: (P.wcH + P.wcM > 0) ? (1 - ad) * P.pWc / 100 : 0 };
+}
 
 // ---------------- Estado y motor de eventos ----------------
+const ESTACIONES = ['rec', 'ad', 'ib', 'co', 'wc'];
 function nuevoEstado(t0) {
-  const st = { t: t0, t0, seq: 0, fin: false, tNext: t0 + expo(LM), st: {}, sistema: new Set(), done: [], arrT: [], arr: { C: 0, IC: 0, I: 0 },
-    u: {}, dec: {}, serie: [], lastM: -1, ents: new Map(), franjas: {}, areaL: 0 };
-  for (const e of ETA) { st.st[e.k] = { q: [], srv: [] }; st.u[e.k] = { b: 0, c: 0 }; st.dec[e.k] = { directo: 0, espera: 0 }; }
+  const st = { t: t0, t0, seq: 0, fin: false, tNext: t0 + expo(LM), st: {}, sistema: new Set(), done: [], arrT: [], arr: {}, hid: [],
+    u: {}, dec: {}, serie: [], lastM: -1, ents: new Map(), franjas: {}, areaL: 0, wcUsos: 0, reint: 0, sinMuestra: 0 };
+  for (const k of ESTACIONES) { st.st[k] = { q: [], srv: [], sx: [] }; st.u[k] = { b: 0, c: 0 }; st.dec[k] = { directo: 0, espera: 0 }; }
+  for (const v of VAR) st.arr[v.v] = 0;
   return st;
 }
-function binFranja(m) { const i = Math.floor(m / 30); return S.franjas[i] ||= { n: 0, w: { rec: { s: 0, n: 0 }, ib: { s: 0, n: 0 }, co: { s: 0, n: 0 } }, total: { s: 0, n: 0 } }; }
+function binFranja(m) { const i = Math.floor(m / 30); return S.franjas[i] ||= { n: 0, w: { rec: { s: 0, n: 0 }, ad: { s: 0, n: 0 }, ib: { s: 0, n: 0 }, co: { s: 0, n: 0 } }, total: { s: 0, n: 0 } }; }
+// Sexo de cada lugar: null = cualquiera; 'H' / 'M' en baños
+function srvSexos(k) {
+  if (k === 'ad') return [...Array(P.adH).fill('H'), ...Array(P.adM).fill('M')];
+  if (k === 'wc') return [...Array(P.wcH).fill('H'), ...Array(P.wcM).fill('M')];
+  return Array(P[k === 'rec' ? 'nRec' : k === 'ib' ? 'nIb' : 'nCo']).fill(null);
+}
+// Puede usar el lugar si es de su sexo, si el lugar no es por sexo, o si no existe ningún baño de su sexo
+const puede = (p, sexo, sx) => sexo === null || sexo === p.sexo || !sx.includes(p.sexo);
 function syncCapacidad() {
-  for (const e of ETA) {
-    const s = S.st[e.k], n = P[e.nk];
-    while (s.srv.length < n) s.srv.push(null);
-    while (s.srv.length > n) { const x = s.srv.pop(); if (x) { delete x.p.i[e.k]; s.q.unshift(x.p); } }   // lo que estaba en un lugar eliminado regresa a la sala
+  for (const k of ESTACIONES) {
+    const s = S.st[k], sx = srvSexos(k), ocup = s.srv.filter(Boolean);
+    s.srv = Array(sx.length).fill(null); s.sx = sx;
+    for (const x of ocup) {
+      const i = s.srv.findIndex((y, j) => !y && puede(x.p, sx[j], sx));
+      if (i >= 0) s.srv[i] = x; else s.q.unshift(x.p);   // lo que estaba en un lugar eliminado regresa a la fila
+    }
   }
 }
 function llegada(ta) {
-  const m = norm(); let r = Math.random(), tp = TIPOS[2];
+  const m = norm(); let r = Math.random(), tp = TIPOS[TIPOS.length - 1];
   for (const x of TIPOS) { r -= m[x.k]; if (r <= 0) { tp = x; break; } }
-  const p = { id: ++S.seq, k: tp.k, ib: tp.ib, co: tp.co, tArr: ta, ruta: ['rec', ...(tp.ib ? ['ib'] : []), ...(tp.co ? ['co'] : [])], idx: 0, q: {}, i: {}, f: {}, directo: {}, carga: S.sistema.size };
-  S.arr[tp.k]++; S.arrT.push(ta); binFranja(ta).n++; S.sistema.add(p);
+  const ad = tp.k === 'A' ? 1 : (Math.random() < P.pctAd / 100 ? 1 : 0);
+  const v = tp.k + (ad && tp.k !== 'A' ? '+AD' : '');
+  const p = { id: ++S.seq, k: tp.k, v, ad, ib: tp.ib, co: tp.co, sexo: Math.random() < P.pctMuj / 100 ? 'M' : 'H', tArr: ta,
+    ruta: ['rec', ...(ad ? ['ad'] : []), ...(tp.ib ? ['ib'] : []), ...(tp.co ? ['co'] : [])], idx: 0,
+    q: {}, i: {}, f: {}, w: {}, s: {}, directo: {}, intentos: 0, hidT: 0, wcT: 0, aus: 0,
+    usaWc: !ad && Math.random() < P.pWc / 100, carga: S.sistema.size };   // quien hará antidoping no usa el baño general antes de la prueba
+  S.arr[v]++; S.arrT.push(ta); binFranja(ta).n++; S.sistema.add(p);
   crearEnt(p);
   entrar(p, 'rec', ta);
 }
 // ¿Hay lugar libre en la etapa? Sí → pasa directo · No → espera en la sala
 function entrar(p, k, tm) {
-  const s = S.st[k], libre = s.q.length === 0 && s.srv.some(x => !x);
+  const s = S.st[k];
+  const libre = !p.ausente && s.srv.some((x, i) => !x && puede(p, s.sx[i], s.sx)) && !s.q.some(o => !o.ausente && (k !== 'ad' || o.sexo === p.sexo));
   p.directo[k] = libre; S.dec[k][libre ? 'directo' : 'espera']++;
   p.q[k] = tm; s.q.push(p); llenar(k);
 }
 function llenar(k) {
   const s = S.st[k];
-  s.srv.forEach((x, i) => { if (!x && s.q.length) { const p = s.q.shift(); p.i[k] = S.t; s.srv[i] = { p, ini: S.t, end: S.t + samp(P[ETK[k].tk]) }; } });
+  s.srv.forEach((x, i) => {
+    if (x) return;
+    const j = s.q.findIndex(p => (k === 'wc' || !p.ausente) && puede(p, s.sx[i], s.sx)); if (j < 0) return;   // en su sala está ausente, pero en la fila del baño sí cuenta
+    const p = s.q.splice(j, 1)[0], t = S.t;
+    if (k === 'wc') { s.srv[i] = { p, ini: t, end: t + samp(P.tWc) }; return; }
+    p.w[k] = (p.w[k] || 0) + Math.max(0, t - p.q[k] - p.aus); p.aus = 0;     // la espera no cuenta el tiempo que estuvo en el baño
+    if (p.i[k] === undefined) p.i[k] = t;
+    s.srv[i] = { p, ini: t, end: t + samp(P[ETK[k].tk]) };
+  });
 }
 function terminar(k) {
   const s = S.st[k];
-  s.srv.forEach((x, i) => { if (x && S.t >= x.end) { s.srv[i] = null; x.p.f[k] = x.end; avanzar(x.p, x.end); } });
+  s.srv.forEach((x, i) => {
+    if (!x || S.t < x.end) return;
+    s.srv[i] = null; const p = x.p;
+    if (k === 'wc') { p.ausente = false; p.wcHecho = true; const d = x.end - p.wcQ; p.wcT += d; p.aus += d; S.wcUsos++; return; }
+    p.s[k] = (p.s[k] || 0) + (x.end - x.ini); p.f[k] = x.end;
+    if (k === 'ad') {
+      p.intentos++;
+      const falla = Math.random() < P.pFalla / 100;
+      if (falla && p.intentos < P.maxInt) { p.hidrata = true; p.hidIni = x.end; p.hidFin = x.end + samp(P.tHidr); S.hid.push(p); S.reint++; return; }   // muestra insuficiente → toma agua y reintenta
+      if (falla) { p.sinMuestra = true; S.sinMuestra++; }
+    }
+    avanzar(p, x.end);
+  });
 }
-function avanzar(p, tm) { p.idx++; if (p.idx < p.ruta.length) entrar(p, p.ruta[p.idx], tm); else salir(p, tm); }
-const wk = (p, k) => p.i[k] !== undefined && p.q[k] !== undefined ? p.i[k] - p.q[k] : 0;
-const sk = (p, k) => p.f[k] !== undefined ? p.f[k] - p.i[k] : 0;
-const esperaTot = p => wk(p, 'rec') + wk(p, 'ib') + wk(p, 'co');
+function avanzar(p, tm) {
+  p.idx++;
+  if (p.idx >= p.ruta.length) return salir(p, tm);
+  const vaAlBano = p.idx === 1 && p.usaWc && !p.wcHecho && S.st.wc.sx.length > 0;
+  if (vaAlBano) p.ausente = true;          // aparta su lugar en la siguiente sala y va al baño
+  entrar(p, p.ruta[p.idx], tm);
+  if (vaAlBano) { p.wcQ = tm; S.st.wc.q.push(p); llenar('wc'); }
+}
+const wk = (p, k) => p.w[k] || 0;
+const sk = (p, k) => p.s[k] || 0;
+const usa = (p, k) => p.ruta.includes(k);
+const esperaTot = p => wk(p, 'rec') + wk(p, 'ad') + wk(p, 'ib') + wk(p, 'co') + p.hidT;
+const ciclo = p => p.tF - p.tArr;
+const sumaEtapas = p => esperaTot(p) + sk(p, 'rec') + sk(p, 'ad') + sk(p, 'ib') + sk(p, 'co');
+const retrasoBano = p => p.wcHecho ? Math.max(0, ciclo(p) - sumaEtapas(p)) : 0;   // si regresó del baño después de su turno
 function salir(p, tm) {
   p.tF = tm; S.done.push(p); S.sistema.delete(p);
   const fb = binFranja(p.tArr); for (const k of p.ruta) { fb.w[k].s += wk(p, k); fb.w[k].n++; } fb.total.s += tm - p.tArr; fb.total.n++;
@@ -318,56 +388,77 @@ function paso(dt) {
   S.t += dt;
   // Llegadas: proceso de Poisson no homogéneo por adelgazamiento (candidatos Exponencial(λmáx), aceptados con prob. λ(t)/λmáx)
   while (S.tNext <= S.t) { if (Math.random() < lam(S.tNext) / LM) llegada(S.tNext); S.tNext += expo(LM); }
-  for (const e of ETA) { terminar(e.k); llenar(e.k); }
-  for (const e of ETA) { const s = S.st[e.k]; S.u[e.k].b += s.srv.filter(Boolean).length * dt; S.u[e.k].c += s.srv.length * dt; }
+  for (const k of ESTACIONES) { terminar(k); llenar(k); }
+  // Hidratación terminada → regresa a la fila del baño de antidoping
+  S.hid = S.hid.filter(p => { if (S.t < p.hidFin) return true; p.hidrata = false; p.hidT += p.hidFin - p.hidIni; p.q.ad = S.t; S.st.ad.q.push(p); llenar('ad'); return false; });
+  for (const k of ESTACIONES) { const s = S.st[k]; S.u[k].b += s.srv.filter(Boolean).length * dt; S.u[k].c += s.srv.length * dt; }
   S.areaL += S.sistema.size * dt;
   const m = Math.floor(S.t);
-  if (m !== S.lastM) { S.lastM = m; S.serie.push({ t: m, rec: S.st.rec.q.length, ib: S.st.ib.q.length, co: S.st.co.q.length, sis: S.sistema.size }); }
+  if (m !== S.lastM) { S.lastM = m; const ql = k => S.st[k].q.filter(p => !p.ausente).length; S.serie.push({ t: m, rec: ql('rec'), ad: ql('ad'), ib: ql('ib'), co: ql('co'), wc: S.st.wc.q.length, hid: S.hid.length, sis: S.sistema.size }); }
   if (S.t >= P.close && S.sistema.size === 0 && !S.fin) { S.fin = true; RUN = false; botonPlay(); }
 }
 
 // ---------------- Plano ----------------
 const PIEL = ['#f1c7a3', '#d9a27a', '#b07850', '#8a5a3b', '#f5d6bd', '#c68b62'];
 const PELO = ['#3b2a20', '#1d1d1d', '#6b4a2b', '#c49a5a', '#8c8c8c'];
+const SX = { H: { n: 'Hombres', c: 'var(--sxH)', l: 'H' }, M: { n: 'Mujeres', c: 'var(--sxM)', l: 'M' } };
 let REF = {};
-const swOf = e => Math.min(76, (e.w - 16) / P[e.nk]);
+const nSrv = k => S.st[k].sx.length;
+const swOf = e => Math.min(76, (e.w - 16) / Math.max(1, nSrv(e.k)));
 const srvX = (e, i) => e.x + 8 + (i + 0.5) * swOf(e);
-const srvPos = (k, i) => ({ x: srvX(ETK[k], i), y: k === 'ib' ? 120 : 140 });
+const WCX = { H: { x: 20, stall: 316, fila: 44 }, M: { x: 490, stall: 786, fila: 514 } };
+function srvPos(k, i) {
+  if (k === 'wc') { const sx = S.st.wc.sx, j = sx.slice(0, i).filter(s => s === sx[i]).length; return { x: WCX[sx[i]].stall + j * 48, y: 552 }; }
+  return { x: srvX(ETK[k], i), y: k === 'ib' ? 120 : 140 };
+}
 const seatCols = e => Math.floor((e.w - 16) / 24);
 function seat(k, i) { const e = ETK[k], c = seatCols(e), j = i % (c * 5); return { x: e.x + 20 + (j % c) * 24, y: 288 + Math.floor(j / c) * 34 }; }
+const filaWc = (sexo, j) => ({ x: WCX[sexo].fila + (j % 9) * 20, y: 556 });
 
-function persona(g, x, y, ropa, piel, pelo, extra) {
+function persona(g, x, y, ropa, piel, pelo, sexo, extra) {
   el('path', { d: `M${x - 7},${y + 10} C${x - 7},${y + 1} ${x + 7},${y + 1} ${x + 7},${y + 10} Z`, fill: ropa }, g);
   el('circle', { cx: x, cy: y - 3, r: 5, fill: piel }, g);
-  el('path', { d: `M${x - 5},${y - 4.5} Q${x},${y - 10.5} ${x + 5},${y - 4.5} Q${x},${y - 7} ${x - 5},${y - 4.5} Z`, fill: pelo }, g);
+  if (sexo === 'M') el('path', { d: `M${x - 5.8},${y - 4} Q${x},${y - 12} ${x + 5.8},${y - 4} L${x + 5.8},${y + 3} L${x + 3.8},${y + 3} L${x + 3.8},${y - 3.5} Q${x},${y - 7.5} ${x - 3.8},${y - 3.5} L${x - 3.8},${y + 3} L${x - 5.8},${y + 3} Z`, fill: pelo }, g);
+  else el('path', { d: `M${x - 5},${y - 4.5} Q${x},${y - 10.5} ${x + 5},${y - 4.5} Q${x},${y - 7} ${x - 5},${y - 4.5} Z`, fill: pelo }, g);
   if (extra === 'medico') el('path', { d: `M${x - 3},${y + 3} q3,5 6,0`, fill: 'none', stroke: '#5b6b75', 'stroke-width': 1.3 }, g);
 }
 function planta(g, x, y) {
   el('rect', { x: x - 7, y, width: 14, height: 11, rx: 3, fill: 'var(--woodDark)' }, g);
   for (const [dx, dy, r] of [[-6, -4, 6], [6, -4, 6], [0, -10, 7], [0, -2, 6]]) el('circle', { cx: x + dx, cy: y + dy, r, fill: 'var(--plant)' }, g);
 }
+function inodoro(g, cx, y) {
+  el('rect', { x: cx - 6, y, width: 12, height: 9, rx: 2, fill: '#fff', stroke: 'var(--steelDark)' }, g);
+  el('ellipse', { cx, cy: y + 15, rx: 7.5, ry: 5.5, fill: '#fff', stroke: 'var(--steelDark)' }, g);
+}
 function construirPlano() {
-  const g = $('lyStatic'); g.innerHTML = ''; REF = { titulo: {}, sub: {}, srv: {}, sala: {}, pie: {} };
-  el('rect', { x: 0, y: 0, width: 960, height: 470, rx: 12, fill: 'url(#pFloor)' }, g);
+  const g = $('lyStatic'); g.innerHTML = ''; REF = { titulo: {}, sub: {}, srv: {}, sala: {}, pie: {}, wc: {} };
+  el('rect', { x: 0, y: 0, width: 960, height: 600, rx: 12, fill: 'url(#pFloor)' }, g);
   for (const e of ETA) {
     el('rect', { x: e.x, y: 8, width: e.w, height: 186, rx: 12, fill: 'var(--zona)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
-    REF.titulo[e.k] = txt(g, '', e.x + 12, 28, 13, 'var(--ink)', 'start', 700);
-    REF.sub[e.k] = txt(g, '', e.x + 12, 44, 10.5, 'var(--muted)');
-    const N = P[e.nk], sw = swOf(e); REF.srv[e.k] = [];
-    for (let i = 0; i < N; i++) {
+    REF.titulo[e.k] = txt(g, '', e.x + 12, 28, 12.5, 'var(--ink)', 'start', 700);
+    REF.sub[e.k] = txt(g, '', e.x + 12, 44, 10, 'var(--muted)');
+    const sx = S.st[e.k].sx, sw = swOf(e); REF.srv[e.k] = [];
+    if (!sx.length) txt(g, 'Sin lugares: captura al menos uno', e.x + e.w / 2, 110, 11, 'var(--bad)', 'middle', 600);
+    sx.forEach((sexo, i) => {
       const cx = srvX(e, i), r = {};
       r.fondo = el('rect', { x: cx - sw * 0.45, y: 52, width: sw * 0.9, height: 116, rx: 8, fill: 'none', 'stroke-width': 2 }, g);
       if (e.k === 'rec') {
-        persona(g, cx, 66, 'var(--scrub)', PIEL[i % 6], PELO[i % 5]);
+        persona(g, cx, 66, 'var(--scrub)', PIEL[i % 6], PELO[i % 5], i % 2 ? 'M' : 'H');
         el('rect', { x: cx - sw * 0.4, y: 80, width: sw * 0.8, height: 20, rx: 4, fill: 'var(--wood)' }, g);
         el('rect', { x: cx - 7, y: 84, width: 14, height: 9, rx: 2, fill: 'var(--ink)', 'fill-opacity': 0.7 }, g);
+      } else if (e.k === 'ad') {
+        el('rect', { x: cx - sw * 0.42, y: 56, width: sw * 0.84, height: 108, rx: 5, fill: 'var(--steel)', 'fill-opacity': 0.6, stroke: 'var(--steelDark)' }, g);
+        el('rect', { x: cx - 11, y: 58, width: 22, height: 15, rx: 7, fill: SX[sexo].c }, g);
+        txt(g, SX[sexo].l, cx, 69.5, 10, '#fff', 'middle', 800);
+        inodoro(g, cx, 84);
+        el('rect', { x: cx + sw * 0.18, y: 98, width: 6, height: 9, rx: 1.5, fill: 'var(--agua)', 'fill-opacity': 0.9 }, g);   // frasco de muestra
       } else if (e.k === 'ib') {
         el('rect', { x: cx - 4, y: 60, width: 8, height: 50, rx: 3, fill: 'var(--steelDark)' }, g);
         el('rect', { x: cx - 12, y: 52, width: 24, height: 15, rx: 3, fill: 'var(--accent)' }, g);
         el('rect', { x: cx - 9, y: 55, width: 18, height: 9, rx: 1.5, fill: '#dff6f8', 'fill-opacity': 0.85 }, g);
         el('rect', { x: cx - sw * 0.36, y: 128, width: sw * 0.72, height: 9, rx: 3, fill: 'var(--steelDark)' }, g);
       } else {
-        persona(g, cx, 64, 'var(--coat)', PIEL[(i + 3) % 6], PELO[(i + 2) % 5], 'medico');
+        persona(g, cx, 64, 'var(--coat)', PIEL[(i + 3) % 6], PELO[(i + 2) % 5], i % 2 ? 'H' : 'M', 'medico');
         el('rect', { x: cx - sw * 0.4, y: 78, width: sw * 0.8, height: 18, rx: 4, fill: 'var(--wood)' }, g);
         el('rect', { x: cx - 3, y: 81, width: 9, height: 7, rx: 1, fill: '#fff', 'fill-opacity': 0.8 }, g);
       }
@@ -376,52 +467,85 @@ function construirPlano() {
       r.w = sw * 0.8;
       txt(g, String(i + 1), cx, 182, 10.5, 'var(--muted)', 'middle');
       REF.srv[e.k].push(r);
-    }
+    });
   }
   // Pasillo con entrada y salida
   el('rect', { x: 0, y: 198, width: 960, height: 22, fill: 'var(--floorLine)', 'fill-opacity': 0.9 }, g);
   txt(g, 'Entrada ➜', 12, 213, 10.5, 'var(--accent)', 'start', 700);
   txt(g, 'Salida ➜', 950, 213, 10.5, 'var(--accent)', 'end', 700);
   // Sala de espera
-  el('rect', { x: 20, y: 224, width: 920, height: 238, rx: 12, fill: 'var(--zona)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
+  el('rect', { x: 20, y: 224, width: 920, height: 232, rx: 12, fill: 'var(--zona)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
   txt(g, 'Sala de espera', 32, 244, 13, 'var(--ink)', 'start', 700);
-  txt(g, 'Los pacientes entran por la puerta y esperan sentados su turno', 928, 244, 11, 'var(--muted)', 'end');
+  txt(g, 'Los pacientes esperan sentados su turno · vaso de agua = hidratándose para repetir antidoping', 928, 244, 10.5, 'var(--muted)', 'end');
   for (const e of ETA) {
-    REF.sala[e.k] = txt(g, '', e.x + 12, 264, 11, 'var(--muted)', 'start', 600);
+    REF.sala[e.k] = txt(g, '', e.x + 12, 264, 10.5, 'var(--muted)', 'start', 600);
     const c = seatCols(e);
     for (let i = 0; i < c * 5; i++) { const s = seat(e.k, i); el('rect', { x: s.x - 8, y: s.y + 6, width: 16, height: 10, rx: 3, fill: 'var(--wood)', 'fill-opacity': 0.85 }, g); }
-    REF.pie[e.k] = txt(g, '', e.x + 12, 456, 11, 'var(--bad)', 'start', 600);
-    if (e.k !== 'co') el('line', { x1: e.x + e.w + 10, x2: e.x + e.w + 10, y1: 254, y2: 452, stroke: 'var(--line)', 'stroke-dasharray': '4 4' }, g);
+    REF.pie[e.k] = txt(g, '', e.x + 12, 452, 10.5, 'var(--bad)', 'start', 600);
+    if (e.k !== 'co') el('line', { x1: e.x + e.w + 5, x2: e.x + e.w + 5, y1: 254, y2: 448, stroke: 'var(--line)', 'stroke-dasharray': '4 4' }, g);
   }
+  // Pasillo inferior y baños generales
+  el('rect', { x: 0, y: 458, width: 960, height: 12, fill: 'var(--floorLine)', 'fill-opacity': 0.9 }, g);
+  el('rect', { x: 20, y: 472, width: 920, height: 122, rx: 12, fill: 'var(--zona)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
+  txt(g, 'Baños generales', 32, 491, 13, 'var(--ink)', 'start', 700);
+  REF.wcSub = txt(g, '', 152, 491, 10.5, 'var(--muted)');
+  REF.wcSrv = [];
+  for (const sexo of ['H', 'M']) {
+    const b = WCX[sexo];
+    REF.wc[sexo] = txt(g, '', b.x + 12, 510, 10.5, SX[sexo].c, 'start', 700);
+    el('rect', { x: b.fila - 14, y: 532, width: 196, height: 34, rx: 8, fill: 'var(--panel)', 'fill-opacity': 0.5, stroke: 'var(--line)', 'stroke-dasharray': '3 3' }, g);
+    txt(g, 'fila', b.fila - 10, 580, 9.5, 'var(--muted)');
+    // lavabos
+    for (let j = 0; j < 2; j++) { el('rect', { x: b.stall - 46, y: 520 + j * 30, width: 18, height: 12, rx: 3, fill: '#fff', stroke: 'var(--steelDark)' }, g); el('circle', { cx: b.stall - 37, cy: 526 + j * 30, r: 2.5, fill: 'var(--agua)' }, g); }
+  }
+  S.st.wc.sx.forEach((sexo, i) => {
+    const p = srvPos('wc', i), r = {};
+    el('rect', { x: p.x - 20, y: 498, width: 40, height: 90, rx: 5, fill: 'var(--steel)', 'fill-opacity': 0.6, stroke: 'var(--steelDark)' }, g);
+    el('rect', { x: p.x - 9, y: 500, width: 18, height: 12, rx: 6, fill: SX[sexo].c }, g);
+    txt(g, SX[sexo].l, p.x, 509.5, 9, '#fff', 'middle', 800);
+    inodoro(g, p.x, 516);
+    r.fondo = el('rect', { x: p.x - 20, y: 498, width: 40, height: 90, rx: 5, fill: 'none', 'stroke-width': 2 }, g);
+    REF.wcSrv.push(r);
+  });
+  if (!S.st.wc.sx.length) txt(g, 'Sin baños generales: los pacientes no los usan', 480, 540, 11, 'var(--bad)', 'middle', 600);
   planta(g, 930, 266);
 }
 
-// Pacientes animados: caminan por el pasillo entre la sala y cada etapa, con estela y ruta restante
+// Pacientes animados con estela y ruta restante
 function crearEnt(p) {
   const g = el('g', {}, $('lyEnt')), c = COLOR[p.k], e = { p, g, x: -14, y: 209, ruta: [], borrar: false, fase: Math.random() * 6, zona: 'entrada', trail: [] };
   el('ellipse', { cx: 0, cy: 14, rx: 7, ry: 2.4, fill: '#000', 'fill-opacity': 0.16 }, g);
   e.halo = el('circle', { cx: 0, cy: 3, r: 13, fill: 'var(--bad)', 'fill-opacity': 0.28, opacity: 0 }, g);
   e.p1 = el('line', { x1: -2.5, y1: 9, x2: -2.5, y2: 14, stroke: '#3a3f4a', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
   e.p2 = el('line', { x1: 2.5, y1: 9, x2: 2.5, y2: 14, stroke: '#3a3f4a', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
-  persona(g, 0, 0, c, PIEL[p.id % 6], PELO[p.id % 5]);
+  persona(g, 0, 0, c, PIEL[p.id % 6], PELO[p.id % 5], p.sexo);
+  if (p.ad && p.k !== 'A') el('circle', { cx: 6.5, cy: -9, r: 3.4, fill: 'var(--tA)', stroke: '#fff', 'stroke-width': 1.2 }, g);   // marca: también hace antidoping
+  e.vaso = el('path', { d: 'M-13,-2 h7 l-1,9 h-5 Z', fill: 'var(--agua)', stroke: '#fff', 'stroke-width': 0.8, opacity: 0 }, g);
   e.tEl = el('polyline', { fill: 'none', stroke: c, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-opacity': 0.45 }, $('lyTrail'));
   e.pEl = el('polyline', { fill: 'none', stroke: c, 'stroke-width': 1.6, 'stroke-dasharray': '2 5', 'stroke-linecap': 'round', 'stroke-opacity': 0.7 }, $('lyTrail'));
   S.ents.set(p.id, e);
 }
-// Ruta: si cambia de zona, baja/sube al pasillo, camina por él y entra a su lugar
+// Ruta por pasillos: arriba (etapas) por el pasillo central; baños generales por el pasillo inferior
+const nivel = y => y < 222 ? 'arriba' : y < 458 ? 'sala' : 'abajo';
 function apuntar(p, pos, zona) {
   const e = S.ents.get(p.id); if (!e || e.borrar) return;
   const ult = e.ruta[e.ruta.length - 1] || { x: e.x, y: e.y };
   if (e.zona === zona && Math.abs(ult.x - pos.x) < 0.5 && Math.abs(ult.y - pos.y) < 0.5) return;
-  e.ruta = e.zona === zona ? [pos] : [{ x: e.x, y: 209 }, { x: pos.x, y: 209 }, pos];
+  if (e.zona === zona) e.ruta = [pos];
+  else if (nivel(e.y) === 'abajo' || nivel(pos.y) === 'abajo') e.ruta = [{ x: e.x, y: 464 }, { x: pos.x, y: 464 }, pos];
+  else e.ruta = [{ x: e.x, y: 209 }, { x: pos.x, y: 209 }, pos];
   e.zona = zona;
 }
 function posicionar() {
   for (const et of ETA) {
     const s = S.st[et.k];
-    s.q.forEach((p, i) => apuntar(p, seat(et.k, i), 'sala_' + et.k));
+    s.q.forEach((p, i) => { if (!p.ausente) apuntar(p, seat(et.k, i), 'sala_' + et.k); });   // el lugar del ausente queda apartado
     s.srv.forEach((x, i) => x && apuntar(x.p, srvPos(et.k, i), 'srv_' + et.k));
   }
+  S.hid.forEach((p, j) => apuntar(p, seat('ad', S.st.ad.q.length + j), 'hid'));
+  const cnt = { H: 0, M: 0 };
+  S.st.wc.q.forEach(p => { const sx = S.st.wc.sx.includes(p.sexo) ? p.sexo : (p.sexo === 'H' ? 'M' : 'H'); apuntar(p, filaWc(sx, cnt[sx]++), 'filaWc'); });
+  S.st.wc.srv.forEach((x, i) => x && apuntar(x.p, srvPos('wc', i), 'wc'));
 }
 function largoRuta(e) { let L = 0, x = e.x, y = e.y; for (const p of e.ruta) { L += Math.hypot(p.x - x, p.y - y); x = p.x; y = p.y; } return L; }
 function animar(realDt) {
@@ -443,6 +567,7 @@ function animar(realDt) {
     }
     const tarde = S.sistema.has(e.p) && S.t - e.p.tArr > meta(e.p);
     e.halo.setAttribute('opacity', tarde ? 0.6 + 0.4 * Math.sin(now * 5 + e.fase) : 0);
+    e.vaso.setAttribute('opacity', e.p.hidrata ? 1 : 0);
     const ciclo = Math.sin(now * 13 + e.fase), bob = mov ? -Math.abs(ciclo) * 1.8 : 0, sw = mov ? ciclo * 2.6 : 0;
     e.p1.setAttribute('x2', -2.5 + sw); e.p2.setAttribute('x2', 2.5 - sw);
     if (e.borrar && !e.saliendo) { e.saliendo = true; e.g.setAttribute('opacity', 0.55); e.tEl.setAttribute('stroke-opacity', 0.2); }
@@ -451,26 +576,38 @@ function animar(realDt) {
 }
 function dibujarDinamico() {
   for (const e of ETA) {
-    const s = S.st[e.k], ocup = s.srv.filter(Boolean).length, d = S.dec[e.k], tot = d.directo + d.espera;
-    REF.titulo[e.k].textContent = `${e.n} (${ocup} de ${s.srv.length} ocupados)`;
-    REF.sub[e.k].textContent = tot ? `${Math.round(d.directo / tot * 100)}% pasó directo · ${s.q.length} en sala` : 'Sin pacientes todavía';
+    const s = S.st[e.k], ocup = s.srv.filter(Boolean).length, d = S.dec[e.k], tot = d.directo + d.espera, enSala = s.q.filter(p => !p.ausente).length;
+    REF.titulo[e.k].textContent = `${e.n} · ${ocup}/${s.srv.length} ocupados`;
+    REF.sub[e.k].textContent = e.k === 'ad'
+      ? `Supervisada · ${S.reint} reintento${S.reint === 1 ? '' : 's'} · ${S.hid.length} hidratándose`
+      : tot ? `${Math.round(d.directo / tot * 100)}% pasó directo · ${enSala} en sala` : 'Sin pacientes todavía';
     s.srv.forEach((x, i) => {
       const r = REF.srv[e.k][i]; if (!r) return;
       r.fondo.style.stroke = x ? COLOR[x.p.k] : 'none'; r.fondo.style.fill = x ? COLOR[x.p.k] : 'none'; r.fondo.setAttribute('fill-opacity', 0.08);
       r.prog.setAttribute('width', x ? r.w * Math.min(1, (S.t - x.ini) / (x.end - x.ini)) : 0); if (x) r.prog.style.fill = COLOR[x.p.k];
     });
-    const cap = seatCols(e) * 5;
-    REF.sala[e.k].textContent = `Esperando ${e.e}: ${s.q.length}`;
-    REF.sala[e.k].style.fill = s.q.length === 0 ? 'var(--muted)' : s.q.length >= s.srv.length * 2 ? 'var(--bad)' : 'var(--warn)';
-    REF.pie[e.k].textContent = s.q.length > cap ? `+${s.q.length - cap} de pie` : '';
+    const cap = seatCols(e) * 5, extra = e.k === 'ad' ? S.hid.length : 0, aus = s.q.length - enSala;
+    REF.sala[e.k].textContent = `Esperando ${e.e}: ${enSala}${aus ? ` (+${aus} en el baño)` : ''}${extra ? ` · ${extra} hidratándose` : ''}`;
+    REF.sala[e.k].style.fill = enSala === 0 ? 'var(--muted)' : enSala >= s.srv.length * 2 ? 'var(--bad)' : 'var(--warn)';
+    REF.pie[e.k].textContent = s.q.length + extra > cap ? `+${s.q.length + extra - cap} de pie` : '';
   }
+  const w = S.st.wc;
+  for (const sexo of ['H', 'M']) {
+    const usando = w.srv.filter((x, i) => x && w.sx[i] === sexo).length, fila = w.q.filter(p => (w.sx.includes(p.sexo) ? p.sexo : (p.sexo === 'H' ? 'M' : 'H')) === sexo).length;
+    REF.wc[sexo].textContent = `${SX[sexo].n}: ${usando} de ${w.sx.filter(s => s === sexo).length} ocupados · ${fila} en fila`;
+  }
+  REF.wcSub.textContent = `${S.wcUsos} usos · el paciente aparta su lugar en la sala y no pierde su turno`;
+  w.srv.forEach((x, i) => { const r = REF.wcSrv[i]; if (!r) return; r.fondo.style.stroke = x ? COLOR[x.p.k] : 'none'; });
 }
 function cuello() {
-  const r = ETA.map(e => { const s = S.st[e.k], c = s.srv.length; return { n: e.n, q: s.q.length, c, u: s.srv.filter(Boolean).length / c }; });
+  const r = [...ETA.map(e => ({ n: e.n, k: e.k })), { n: 'Baños generales', k: 'wc' }].map(e => {
+    const s = S.st[e.k], c = Math.max(1, s.srv.length);
+    return { n: e.n, q: s.q.filter(p => !p.ausente).length + (e.k === 'ad' ? 0 : 0), c, u: s.srv.length ? s.srv.filter(Boolean).length / s.srv.length : 0 };
+  });
   r.forEach(x => x.score = x.q / x.c + x.u);
   const p = r.reduce((a, b) => b.score > a.score ? b : a), el2 = $('cuello');
   if (p.q === 0 && p.u < 0.85) { el2.className = 'bottleneck ok'; el2.textContent = 'Flujo estable'; }
-  else { el2.className = 'bottleneck ' + (p.q / p.c >= 1 ? 'bad' : 'warn'); el2.textContent = `Cuello de botella: ${p.n} · ${p.q} ${p.q === 1 ? 'paciente' : 'pacientes'} en sala · ocupación ${Math.round(p.u * 100)}%`; }
+  else { el2.className = 'bottleneck ' + (p.q / p.c >= 1 ? 'bad' : 'warn'); el2.textContent = `Cuello de botella: ${p.n} · ${p.q} ${p.q === 1 ? 'paciente' : 'pacientes'} esperando · ocupación ${Math.round(p.u * 100)}%`; }
 }
 
 // ---------------- Reloj ----------------
@@ -522,47 +659,68 @@ function infoPicos() {
 
 // ---------------- Zona 2: parámetros ----------------
 const CFG = [
-  ['Demanda', [['base', 'Pacientes por hora (base)', 0, 500, 1]]],
-  ['Tipo de visita (%)', [['mix.C', '% Solo consulta', 0, 100, 1], ['mix.IC', '% InBody + Consulta', 0, 100, 1], ['mix.I', '% Solo InBody', 0, 100, 1]]],
+  ['Demanda', [['base', 'Pacientes por hora (base)', 0, 500, 1], ['pctMuj', '% mujeres', 0, 100, 1]]],
+  ['Tipo de visita (%)', [['mix.C', '% Solo consulta', 0, 100, 1], ['mix.IC', '% InBody + Consulta', 0, 100, 1], ['mix.I', '% Solo InBody', 0, 100, 1], ['mix.A', '% Solo antidoping', 0, 100, 1],
+    ['pctAd', '% de consulta / InBody que además hace antidoping', 0, 100, 1]]],
   ['Recepción', [['nRec', 'Número de recepciones', 1, 30, 1], ['tRec', 'Atención por paciente (min)', 0.5, 60, 0.5]]],
+  ['Antidoping (baños de toma de muestra)', [['adH', 'Baños antidoping hombres', 0, 4, 1], ['adM', 'Baños antidoping mujeres', 0, 4, 1], ['tAd', 'Toma de muestra supervisada (min)', 1, 60, 0.5],
+    ['pFalla', '% sin muestra suficiente', 0, 90, 1], ['tHidr', 'Hidratación antes de reintentar (min)', 1, 120, 1], ['maxInt', 'Intentos máximos', 1, 5, 1]]],
   ['Equipos InBody', [['nIb', 'Número de equipos InBody', 1, 30, 1], ['tIb', 'Duración InBody (min)', 1, 60, 0.5]]],
   ['Consultorios', [['nCo', 'Número de consultorios', 1, 60, 1], ['tCo', 'Duración consulta (min)', 1, 120, 1]]],
-  ['Variabilidad y metas', [['cv', 'Variabilidad de tiempos (%)', 0, 80, 5], ['meta.C', 'Meta solo consulta (min)', 1, 400, 1], ['meta.IC', 'Meta InBody + consulta (min)', 1, 400, 1], ['meta.I', 'Meta solo InBody (min)', 1, 400, 1]]],
+  ['Baños generales', [['wcH', 'Baños hombres', 0, 5, 1], ['wcM', 'Baños mujeres', 0, 5, 1], ['tWc', 'Tiempo de uso (min)', 0.5, 30, 0.5], ['pWc', '% de pacientes que van al baño', 0, 100, 1]]],
+  ['Variabilidad y metas', [['cv', 'Variabilidad de tiempos (%)', 0, 80, 5], ['meta.C', 'Meta solo consulta (min)', 1, 400, 1], ['meta.IC', 'Meta InBody + consulta (min)', 1, 400, 1],
+    ['meta.I', 'Meta solo InBody (min)', 1, 400, 1], ['meta.A', 'Meta solo antidoping (min)', 1, 400, 1], ['metaAd', 'Minutos extra de meta si suma antidoping', 0, 200, 1]]],
 ];
-const CAPACIDAD = ['nRec', 'nIb', 'nCo'];
+const CAPACIDAD = ['nRec', 'nIb', 'nCo', 'adH', 'adM', 'wcH', 'wcM', 'maxInt'];
 function construirCfg() {
   $('cfg').innerHTML = CFG.map((g, i) => `<div class="card"><h3>${g[0]}</h3>${g[1].map(([k, l, mn, mx, st]) =>
     `<div class="fld"><label for="f_${k}">${l}</label><input type="number" id="f_${k}" data-k="${k}" min="${mn}" max="${mx}" step="${st}" value="${getP(k)}"></div>`).join('')}<div class="der" id="der${i}"></div></div>`).join('');
   derivados();
 }
 function derivados() {
-  const m = norm(), pk = LM, cap = (n, t) => n * 60 / t, rho = (d, c) => { const r = d / c; return `<b style="color:var(--${r >= 1 ? 'bad' : r >= 0.8 ? 'warn' : 'ok'})">${Math.round(r * 100)}%</b>`; };
-  const sum = P.mix.C + P.mix.IC + P.mix.I;
+  const m = norm(), fr = fracciones(), pk = LM, cap = (n, t) => n * 60 / t, E = intentosEsp();
+  const rho = (d, c) => { if (!c) return '<b style="color:var(--bad)">sin capacidad</b>'; const r = d / c; return `<b style="color:var(--${r >= 1 ? 'bad' : r >= 0.8 ? 'warn' : 'ok'})">${Math.round(r * 100)}%</b>`; };
+  const sum = P.mix.C + P.mix.IC + P.mix.I + P.mix.A;
   const D = [
-    `Llegadas con distribución de Poisson, tasa λ(t)<br>Demanda máxima: ${pk.toFixed(0)} pacientes/h<br>Pacientes esperados en el día: ${demandaDia().toFixed(0)}`,
-    `Suma: <b style="color:var(--${sum === 100 ? 'ok' : 'warn'})">${sum}%</b>${sum === 100 ? '' : ' (se normaliza a 100%)'}<br>Pasan por InBody: ${pc(m.IC + m.I)} · por consulta: ${pc(m.C + m.IC)}`,
+    `Llegadas con distribución de Poisson, tasa λ(t)<br>Demanda máxima: ${pk.toFixed(0)} pacientes/h<br>Pacientes esperados en el día: ${demandaDia().toFixed(0)} (${P.pctMuj}% mujeres)`,
+    `Suma: <b style="color:var(--${sum === 100 ? 'ok' : 'warn'})">${sum}%</b>${sum === 100 ? '' : ' (se normaliza a 100%)'}<br>Hacen antidoping: ${pc(fr.ad)} · InBody: ${pc(fr.ib)} · consulta: ${pc(fr.co)}`,
     `Capacidad: ${cap(P.nRec, P.tRec).toFixed(0)} pacientes/h<br>Ocupación en pico: ${rho(pk, cap(P.nRec, P.tRec))}`,
-    `Capacidad: ${cap(P.nIb, P.tIb).toFixed(0)} estudios/h<br>Demanda pico: ${(pk * (m.IC + m.I)).toFixed(0)}/h · ocupación ${rho(pk * (m.IC + m.I), cap(P.nIb, P.tIb))}`,
-    `Capacidad: ${cap(P.nCo, P.tCo).toFixed(0)} consultas/h<br>Demanda pico: ${(pk * (m.C + m.IC)).toFixed(0)}/h · ocupación ${rho(pk * (m.C + m.IC), cap(P.nCo, P.tCo))}`,
-    `Tiempo mínimo sin esperas:<br>Consulta ${(P.tRec + P.tCo).toFixed(0)} · InBody + Consulta ${(P.tRec + P.tIb + P.tCo).toFixed(0)} · InBody ${(P.tRec + P.tIb).toFixed(0)} min`,
+    `Intentos promedio por paciente: ${E.toFixed(2)}<br>Capacidad: ${cap(P.adH, P.tAd).toFixed(1)} H + ${cap(P.adM, P.tAd).toFixed(1)} M tomas/h<br>Ocupación en pico: H ${rho(pk * fr.ad * E * (1 - P.pctMuj / 100), cap(P.adH, P.tAd))} · M ${rho(pk * fr.ad * E * P.pctMuj / 100, cap(P.adM, P.tAd))}`,
+    `Capacidad: ${cap(P.nIb, P.tIb).toFixed(0)} estudios/h<br>Demanda pico: ${(pk * fr.ib).toFixed(0)}/h · ocupación ${rho(pk * fr.ib, cap(P.nIb, P.tIb))}`,
+    `Capacidad: ${cap(P.nCo, P.tCo).toFixed(0)} consultas/h<br>Demanda pico: ${(pk * fr.co).toFixed(0)}/h · ocupación ${rho(pk * fr.co, cap(P.nCo, P.tCo))}`,
+    `Usos esperados en pico: ${(pk * fr.wc).toFixed(1)}/h<br>Ocupación en pico: H ${rho(pk * fr.wc * (1 - P.pctMuj / 100), cap(P.wcH, P.tWc))} · M ${rho(pk * fr.wc * P.pctMuj / 100, cap(P.wcM, P.tWc))}<br>Quien hará antidoping no usa el baño general antes de la prueba`,
+    `Tiempo mínimo sin esperas:<br>Consulta ${(P.tRec + P.tCo).toFixed(0)} · InBody + Consulta ${(P.tRec + P.tIb + P.tCo).toFixed(0)} · InBody ${(P.tRec + P.tIb).toFixed(0)} · Antidoping ${(P.tRec + P.tAd).toFixed(0)} min`,
   ];
   D.forEach((s, i) => { const e = $('der' + i); if (e) e.innerHTML = s; });
   if (S) dibujarTiempos();
 }
 // Tiempo de espera y de ciclo: cada etapa como cola M/G/c (Erlang C + ajuste de Allen–Cunneen por variabilidad)
 function wqEtapa(l, t, c) {
-  const mu = 60 / t, rho = l / (c * mu); if (l <= 0) return { rho: 0, wq: 0 }; if (rho >= 1) return { rho, wq: Infinity };
+  const mu = 60 / t; if (l <= 0) return { rho: 0, wq: 0 }; if (c <= 0) return { rho: Infinity, wq: Infinity };
+  const rho = l / (c * mu); if (rho >= 1) return { rho, wq: Infinity };
   return { rho, wq: Stats.erlangC(l, mu, c) / (c * mu - l) * 60 * (1 + (P.cv / 100) ** 2) / 2 };
 }
+// Baños separados por sexo: cada sexo es su propia cola (si un sexo no tiene baño, usa los del otro)
+function wqSexo(l, t, cH, cM) {
+  const pm = P.pctMuj / 100;
+  if (!cH || !cM) return wqEtapa(l, t, cH + cM);
+  const h = wqEtapa(l * (1 - pm), t, cH), m = wqEtapa(l * pm, t, cM);
+  return { rho: Math.max(h.rho, m.rho), wq: (1 - pm) * h.wq + pm * m.wq };
+}
 function tiemposTeoricos(l) {
-  const fr = fracciones(), m = norm();
-  const w = { rec: wqEtapa(l, P.tRec, P.nRec), ib: wqEtapa(l * fr.ib, P.tIb, P.nIb), co: wqEtapa(l * fr.co, P.tCo, P.nCo) };
-  const t = {};
-  for (const tp of TIPOS) {
-    const esp = w.rec.wq + (tp.ib ? w.ib.wq : 0) + (tp.co ? w.co.wq : 0);
-    t[tp.k] = { espera: esp, ciclo: esp + P.tRec + (tp.ib ? P.tIb : 0) + (tp.co ? P.tCo : 0) };
+  const fr = fracciones(), E = intentosEsp();
+  const w = { rec: wqEtapa(l, P.tRec, P.nRec), ad: wqSexo(l * fr.ad * E, P.tAd, P.adH, P.adM), ib: wqEtapa(l * fr.ib, P.tIb, P.nIb), co: wqEtapa(l * fr.co, P.tCo, P.nCo), wc: wqSexo(l * fr.wc, P.tWc, P.wcH, P.wcM) };
+  const t = {}, m = norm();
+  for (const v of VAR) {
+    const tp = TIPOS.find(x => x.k === v.k);
+    const ad = v.ad ? E * w.ad.wq + (E - 1) * P.tHidr : 0;
+    const esp = w.rec.wq + ad + (tp.ib ? w.ib.wq : 0) + (tp.co ? w.co.wq : 0);
+    // Baño general: solo suma lo que exceda la espera de la siguiente etapa (el paciente conserva su lugar)
+    const sig = tp.ib ? w.ib.wq : tp.co ? w.co.wq : 0;
+    const bano = !v.ad && fr.wc ? P.pWc / 100 * Math.max(0, w.wc.wq + P.tWc - sig) : 0;
+    t[v.v] = { espera: esp, ciclo: esp + bano + P.tRec + (v.ad ? E * P.tAd : 0) + (tp.ib ? P.tIb : 0) + (tp.co ? P.tCo : 0) };
   }
-  t.prom = { espera: TIPOS.reduce((a, tp) => a + m[tp.k] * t[tp.k].espera, 0), ciclo: TIPOS.reduce((a, tp) => a + m[tp.k] * t[tp.k].ciclo, 0) };
+  t.prom = { espera: VAR.reduce((a, v) => a + pesoVar(v, m) * t[v.v].espera, 0), ciclo: VAR.reduce((a, v) => a + pesoVar(v, m) * t[v.v].ciclo, 0) };
   return { w, t };
 }
 function dibujarTiempos() {
@@ -570,49 +728,55 @@ function dibujarTiempos() {
   const esc = [['Hora valle', P.base], ['Promedio del día', demandaDia() / horas], ['Hora pico', LM]].map(([n, l]) => ({ n, l, r: tiemposTeoricos(l) }));
   const fmt = v => isFinite(v) ? v.toFixed(1) : '<span class="pill bad">∞ saturado</span>';
   const col = (v, mt) => !isFinite(v) ? '' : v > mt ? 'color:var(--bad);font-weight:600' : v > mt * 0.85 ? 'color:var(--warn);font-weight:600' : '';
-  const sim = k => { const d = S.done.filter(p => !k || p.k === k); if (!d.length) return null;
-    return { espera: d.reduce((a, p) => a + esperaTot(p), 0) / d.length, ciclo: d.reduce((a, p) => a + p.tF - p.tArr, 0) / d.length }; };
-  const filas = [...TIPOS.map(tp => [tp.k, tp.n, P.meta[tp.k]]), ['prom', 'Promedio ponderado (mezcla)', TIPOS.reduce((a, tp) => a + m[tp.k] * P.meta[tp.k], 0)]].map(([k, n, mt]) => {
+  const sim = v => { const d = S.done.filter(p => !v || p.v === v); if (!d.length) return null; return { espera: d.reduce((a, p) => a + esperaTot(p), 0) / d.length, ciclo: d.reduce((a, p) => a + ciclo(p), 0) / d.length }; };
+  const filas = [...VAR.map(v => [v.v, v.n, metaVar(v), v.k]), ['prom', 'Promedio ponderado (mezcla)', VAR.reduce((a, v) => a + pesoVar(v, m) * metaVar(v), 0)]].map(([k, n, mt, tk]) => {
     const sm = sim(k === 'prom' ? null : k);
-    return `<tr class="${k === 'prom' ? 't' : ''}"><td>${k === 'prom' ? '' : `<i class="sw" style="background:${COLOR[k]}"></i>`}${n}</td>${esc.map(e =>
+    return `<tr class="${k === 'prom' ? 't' : ''}"><td>${k === 'prom' ? '' : `<i class="sw" style="background:${COLOR[tk]}"></i>`}${n}</td>${esc.map(e =>
       `<td>${fmt(e.r.t[k].espera)}</td><td style="${col(e.r.t[k].ciclo, mt)}">${fmt(e.r.t[k].ciclo)}</td>`).join('')}
       <td>${sm ? sm.espera.toFixed(1) : '—'}</td><td style="${sm ? col(sm.ciclo, mt) : ''}">${sm ? sm.ciclo.toFixed(1) : '—'}</td><td>${mt.toFixed(0)}</td></tr>`;
   });
-  const rhoF = `<tr><td class="muted">Ocupación ρ (recepción · InBody · consulta)</td>${esc.map(e => `<td colspan="2" class="muted">${ETA.map(x => Math.round(e.r.w[x.k].rho * 100) + '%').join(' · ')}</td>`).join('')}<td colspan="3"></td></tr>`;
+  const rhoF = `<tr><td class="muted">Ocupación ρ (recepción · antidoping · InBody · consulta · baños)</td>${esc.map(e => `<td colspan="2" class="muted">${['rec', 'ad', 'ib', 'co', 'wc'].map(k => isFinite(e.r.w[k].rho) ? Math.round(e.r.w[k].rho * 100) + '%' : '—').join(' · ')}</td>`).join('')}<td colspan="3"></td></tr>`;
   $('tablaTiempos').innerHTML = `<thead><tr><th></th>${esc.map(e => `<th colspan="2" class="grp">${e.n} · ${e.l.toFixed(0)} pac/h</th>`).join('')}<th colspan="2" class="grp">Simulado hasta ahora</th><th></th></tr>
-    <tr><th>Tipo de visita</th>${esc.map(() => '<th>Espera prom. (min)</th><th>Tiempo de ciclo (min)</th>').join('')}<th>Espera prom.</th><th>Tiempo de ciclo</th><th>Meta</th></tr></thead><tbody>${filas.join('')}${rhoF}</tbody>`;
-  const fr = fracciones(), caps = ETA.map(e => [e.n, fr[e.k] ? P[e.nk] * 60 / P[e.tk] / fr[e.k] : Infinity]).sort((a, b) => a[1] - b[1]);
-  $('notaTiempos').innerHTML = `<b>Espera promedio</b> = tiempo sentado en la sala sin ser atendido (suma de las esperas en cada etapa de su visita). <b>Tiempo de ciclo</b> = desde que entra hasta que sale (espera + recepción ${P.tRec} + InBody ${P.tIb} + consulta ${P.tCo} min, según su tipo). ` +
-    `Cálculo por etapa como cola M/G/c (Erlang C con ajuste de Allen–Cunneen por variabilidad de ${P.cv}%). En rojo: supera la meta.<br><b>Ritmo del cuello de botella:</b> ${caps[0][0]}: atiende hasta ${caps[0][1].toFixed(0)} pacientes/h, es decir <b>1 paciente cada ${(60 / caps[0][1]).toFixed(2)} min</b>. Si llegan más que eso, la sala se llena sin límite.`;
+    <tr><th>Variante de visita</th>${esc.map(() => '<th>Espera prom. (min)</th><th>Tiempo de ciclo (min)</th>').join('')}<th>Espera prom.</th><th>Tiempo de ciclo</th><th>Meta</th></tr></thead><tbody>${filas.join('')}${rhoF}</tbody>`;
+  const fr = fracciones(), E = intentosEsp();
+  const caps = [['Recepción', P.nRec * 60 / P.tRec / fr.rec], ['Antidoping', fr.ad ? (P.adH + P.adM) * 60 / P.tAd / (fr.ad * E) : Infinity], ['InBody', fr.ib ? P.nIb * 60 / P.tIb / fr.ib : Infinity], ['Consultorios', fr.co ? P.nCo * 60 / P.tCo / fr.co : Infinity]].sort((a, b) => a[1] - b[1]);
+  $('notaTiempos').innerHTML = `<b>Espera promedio</b> = tiempo sin ser atendido (salas de cada etapa + hidratación por reintentos de antidoping). <b>Tiempo de ciclo</b> = desde que entra hasta que sale. ` +
+    `Antidoping: ${E.toFixed(2)} intentos promedio por paciente con ${P.pFalla}% de muestras insuficientes y hasta ${P.maxInt} intentos. Baños por sexo calculados como colas separadas (${P.pctMuj}% mujeres). Cálculo por etapa como cola M/G/c (Erlang C con ajuste de Allen–Cunneen por variabilidad de ${P.cv}%). En rojo: supera la meta.` +
+    `<br><b>Ritmo del cuello de botella:</b> ${caps[0][0]}: alcanza para ${caps[0][1].toFixed(0)} pacientes/h en total, es decir <b>1 paciente cada ${(60 / caps[0][1]).toFixed(2)} min</b>. Si llegan más que eso, la sala se llena sin límite.`;
 }
 
 // ---------------- Indicadores en vivo ----------------
 function dibujarLive() {
   const d = S.done, n = d.length, av = f => n ? (d.reduce((a, p) => a + f(p), 0) / n).toFixed(1) + ' min' : '—';
-  const it = [['En el hospital', S.sistema.size], ['Atendidos', n], ['Espera promedio', av(esperaTot)], ['Tiempo de ciclo prom.', av(p => p.tF - p.tArr)],
-    ['Dentro de meta', n ? Math.round(d.filter(p => p.tF - p.tArr <= meta(p)).length / n * 100) + '%' : '—'], ['Atendidos (últ. 60 min)', d.filter(p => p.tF > S.t - 60).length]];
+  const it = [['En el hospital', S.sistema.size], ['Atendidos', n], ['Espera promedio', av(esperaTot)], ['Tiempo de ciclo prom.', av(ciclo)],
+    ['Dentro de meta', n ? Math.round(d.filter(p => ciclo(p) <= meta(p)).length / n * 100) + '%' : '—'], ['Antidoping: reintentos · sin muestra', `${S.reint} · ${S.sinMuestra}`]];
   $('live').innerHTML = it.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
 }
 
 // ---------------- Zona 3: tablas ----------------
 let TAB = 'tipo';
 const pill = v => { if (!isFinite(v)) return '—'; const c = v >= 0.85 ? 'ok' : v >= 0.6 ? 'warn' : 'bad'; return `<span class="pill ${c}">${Math.round(v * 100)}%</span>`; };
-const pillRho = v => { const c = v >= 1 ? 'bad' : v >= 0.8 ? 'warn' : 'ok'; return `<span class="pill ${c}">${pc(v)}</span>`; };
+const pillRho = v => { if (!isFinite(v)) return '<span class="pill bad">sin capacidad</span>'; const c = v >= 1 ? 'bad' : v >= 0.8 ? 'warn' : 'ok'; return `<span class="pill ${c}">${pc(v)}</span>`; };
 const prom = (d, f) => { const v = d.map(f).filter(x => x !== undefined && isFinite(x)); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : NaN; };
-const usa = (p, k) => p.ruta.includes(k);
+const swCol = k => `<i class="sw" style="background:${COLOR[k]}"></i>`;
 function dibujarTabla() {
   const tb = $('tabla'); $('tw').classList.toggle('alta', TAB === 'reg');
+  const grupos = [...VAR.map(v => ({ n: v.n, k: v.k, f: p => p.v === v.v, arr: S.arr[v.v] })),
+    { n: 'Con antidoping (todas)', f: p => p.ad, arr: VAR.filter(v => v.ad).reduce((a, v) => a + S.arr[v.v], 0), sub: true },
+    { n: 'Total', f: () => true, arr: Object.values(S.arr).reduce((a, b) => a + b, 0), tot: true }];
   if (TAB === 'tipo') {
-    const fila = (n, d, arr, sis, tp) => `<td>${arr}</td><td>${sis}</td><td>${d.length}</td><td>${f1(prom(d, p => wk(p, 'rec')))}</td><td>${!tp || tp.ib ? f1(prom(d.filter(p => usa(p, 'ib')), p => wk(p, 'ib'))) : '—'}</td>
-      <td>${!tp || tp.co ? f1(prom(d.filter(p => usa(p, 'co')), p => wk(p, 'co'))) : '—'}</td><td>${d.length ? pc(d.filter(p => p.ruta.every(k => p.directo[k])).length / d.length) : '—'}</td>
-      <td>${f1(prom(d, p => p.tF - p.tArr))}</td><td>${f1(Stats.pct(d.map(p => p.tF - p.tArr), 0.9))}</td><td>${d.length ? pill(d.filter(p => p.tF - p.tArr <= meta(p)).length / d.length) : '—'}</td>`;
-    const enSis = k => [...S.sistema].filter(p => p.k === k).length;
-    const rows = TIPOS.map(tp => `<tr><td><i class="sw" style="background:${COLOR[tp.k]}"></i>${tp.n}</td>${fila(tp.n, S.done.filter(p => p.k === tp.k), S.arr[tp.k], enSis(tp.k), tp)}</tr>`).join('');
-    tb.innerHTML = `<thead><tr><th>Tipo de visita</th><th>Llegadas</th><th>En hospital</th><th>Atendidos</th><th>Espera recepción (min)</th><th>Espera InBody (min)</th><th>Espera consulta (min)</th><th>Sin esperar</th><th>Tiempo de ciclo (min)</th><th>P90 (min)</th><th>Dentro de meta</th></tr></thead>
-      <tbody>${rows}<tr class="t"><td>Total</td>${fila('Total', S.done, S.arr.C + S.arr.IC + S.arr.I, S.sistema.size, null)}</tr></tbody>`;
+    const rows = grupos.map(g => {
+      const d = S.done.filter(g.f), sis = [...S.sistema].filter(g.f).length, est = k => { const x = d.filter(p => usa(p, k)); return x.length ? f1(prom(x, p => wk(p, k))) : '—'; };
+      return `<tr class="${g.tot || g.sub ? 't' : ''}"><td>${g.k ? swCol(g.k) : ''}${g.n}</td><td>${g.arr}</td><td>${sis}</td><td>${d.length}</td><td>${est('rec')}</td><td>${est('ad')}</td><td>${est('ib')}</td><td>${est('co')}</td>
+        <td>${d.some(p => p.wcHecho) ? f1(prom(d.filter(p => p.wcHecho), p => p.wcT)) : '—'}</td><td>${d.length ? pc(d.filter(p => p.ruta.every(k => p.directo[k]) && (!p.ad || p.intentos === 1)).length / d.length) : '—'}</td>
+        <td>${f1(prom(d, ciclo))}</td><td>${f1(Stats.pct(d.map(ciclo), 0.9))}</td><td>${d.length ? pill(d.filter(p => ciclo(p) <= meta(p)).length / d.length) : '—'}</td></tr>`;
+    }).join('');
+    tb.innerHTML = `<thead><tr><th>Variante de visita</th><th>Llegadas</th><th>En hospital</th><th>Atendidos</th><th>Espera recepción</th><th>Espera antidoping</th><th>Espera InBody</th><th>Espera consulta</th><th>Baño general</th><th>Sin esperar</th><th>Tiempo de ciclo</th><th>P90</th><th>Dentro de meta</th></tr></thead><tbody>${rows}</tbody>`;
     const u = k => S.u[k].c ? Math.round(S.u[k].b / S.u[k].c * 100) + '%' : '—';
-    const horas = (S.t - S.t0) / 60, n = S.done.length, lamO = (S.arr.C + S.arr.IC + S.arr.I) / Math.max(horas, 1e-9), W = n ? prom(S.done, p => p.tF - p.tArr) / 60 : 0, L = S.areaL / Math.max(S.t - S.t0, 1e-9);
-    $('nota').innerHTML = `Ocupación promedio: recepción ${u('rec')} · InBody ${u('ib')} · consultorios ${u('co')}. "Sin esperar" = % de pacientes que pasaron directo en todas sus etapas. Las esperas se promedian sobre los pacientes ya atendidos.` +
+    const horas = (S.t - S.t0) / 60, n = S.done.length, lamO = grupos[grupos.length - 1].arr / Math.max(horas, 1e-9), W = n ? prom(S.done, ciclo) / 60 : 0, L = S.areaL / Math.max(S.t - S.t0, 1e-9);
+    const adD = S.done.filter(p => p.ad);
+    $('nota').innerHTML = `Tiempos en minutos. Ocupación promedio: recepción ${u('rec')} · antidoping ${u('ad')} · InBody ${u('ib')} · consultorios ${u('co')} · baños generales ${u('wc')}. "Sin esperar" = pasó directo en todas sus etapas y dio muestra al primer intento.` +
+      (adD.length ? `<br>Antidoping: ${adD.length} pacientes · ${pc(adD.filter(p => p.intentos === 1 && !p.sinMuestra).length / adD.length)} con muestra al primer intento · ${S.reint} reintentos · ${S.sinMuestra} sin muestra tras ${P.maxInt} intentos · hidratación promedio ${f1(prom(adD, p => p.hidT))} min.` : '') +
       (horas > 0.25 && n ? `<br>Ley de Little <b>L = λ · W</b>: L observado = <b>${L.toFixed(1)}</b> pacientes en el hospital · λ = ${lamO.toFixed(1)}/h × W = ${(W * 60).toFixed(1)} min → <b>${(lamO * W).toFixed(1)}</b>.` : '');
   } else if (TAB === 'franja') {
     const filas = [], w = o => o.n ? f1(o.s / o.n) : '—';
@@ -620,34 +784,42 @@ function dibujarTabla() {
       const b = S.franjas[m / 30], esp = lam(m + 15) / 2, pk = picoAct(m + 15), fut = m > S.t, sim = b ? b.n : 0;
       filas.push(`<tr class="${Math.floor(S.t / 30) * 30 === m ? 't' : ''}"><td>${hhmm(m)}–${hhmm(m + 30)}</td><td>${pk ? '<span class="pill bad">Pico</span>' : '<span class="pill ok">Fuera de pico</span>'}</td>
         <td>${esp.toFixed(1)}</td><td>${fut ? '—' : sim}</td><td>${fut || !esp ? '—' : (sim - esp >= 0 ? '+' : '') + (sim - esp).toFixed(1)}</td>
-        <td>${b ? w(b.w.rec) : '—'}</td><td>${b ? w(b.w.ib) : '—'}</td><td>${b ? w(b.w.co) : '—'}</td><td>${b ? w(b.total) : '—'}</td></tr>`);
+        <td>${b ? w(b.w.rec) : '—'}</td><td>${b ? w(b.w.ad) : '—'}</td><td>${b ? w(b.w.ib) : '—'}</td><td>${b ? w(b.w.co) : '—'}</td><td>${b ? w(b.total) : '—'}</td></tr>`);
     }
-    tb.innerHTML = `<thead><tr><th>Franja</th><th>Tipo</th><th>Llegadas esperadas</th><th>Simuladas</th><th>Diferencia</th><th>Espera recepción</th><th>Espera InBody</th><th>Espera consulta</th><th>Tiempo de ciclo</th></tr></thead><tbody>${filas.join('')}</tbody>`;
+    tb.innerHTML = `<thead><tr><th>Franja</th><th>Tipo</th><th>Llegadas esperadas</th><th>Simuladas</th><th>Diferencia</th><th>Espera recepción</th><th>Espera antidoping</th><th>Espera InBody</th><th>Espera consulta</th><th>Tiempo de ciclo</th></tr></thead><tbody>${filas.join('')}</tbody>`;
     $('nota').innerHTML = 'Llegadas esperadas por franja = <b>λ(t) × 0.5 h</b>. Las esperas (min) se agrupan por la franja en que <b>llegó</b> el paciente: así se ve qué hora de llegada sufre más la saturación.';
   } else if (TAB === 'etapas') {
-    const cols = [['Espera recepción', p => wk(p, 'rec')], ['Recepción', p => sk(p, 'rec')], ['Espera InBody', p => usa(p, 'ib') ? wk(p, 'ib') : undefined], ['InBody', p => usa(p, 'ib') ? sk(p, 'ib') : undefined],
-      ['Espera consulta', p => usa(p, 'co') ? wk(p, 'co') : undefined], ['Consulta', p => usa(p, 'co') ? sk(p, 'co') : undefined], ['Espera total', esperaTot], ['Tiempo de ciclo', p => p.tF - p.tArr]];
-    const fila = (n, d, c) => `<tr class="${c ? '' : 't'}"><td>${c ? `<i class="sw" style="background:${c}"></i>` : ''}${n}</td><td>${d.length}</td>${cols.map(([, f]) => `<td>${f1(prom(d, f))}</td>`).join('')}</tr>`;
-    tb.innerHTML = `<thead><tr><th>Tipo de visita</th><th>Pacientes</th>${cols.map(([n]) => `<th>${n}</th>`).join('')}</tr></thead><tbody>${TIPOS.map(tp => fila(tp.n, S.done.filter(p => p.k === tp.k), COLOR[tp.k])).join('')}${fila('Total', S.done)}</tbody>`;
-    $('nota').innerHTML = 'Promedios en minutos de los pacientes atendidos. <b>Tiempo de ciclo = Σ (espera + atención)</b> en las etapas de su tipo de visita.';
+    const cols = [['Espera recepción', p => wk(p, 'rec')], ['Recepción', p => sk(p, 'rec')], ['Espera antidoping', p => usa(p, 'ad') ? wk(p, 'ad') : undefined], ['Toma de muestra', p => usa(p, 'ad') ? sk(p, 'ad') : undefined],
+      ['Hidratación', p => usa(p, 'ad') ? p.hidT : undefined], ['Espera InBody', p => usa(p, 'ib') ? wk(p, 'ib') : undefined], ['InBody', p => usa(p, 'ib') ? sk(p, 'ib') : undefined],
+      ['Espera consulta', p => usa(p, 'co') ? wk(p, 'co') : undefined], ['Consulta', p => usa(p, 'co') ? sk(p, 'co') : undefined], ['Uso de baño general', p => p.wcHecho ? p.wcT : undefined], ['Retraso por baño', p => p.wcHecho ? retrasoBano(p) : undefined], ['Espera total', esperaTot], ['Tiempo de ciclo', ciclo]];
+    tb.innerHTML = `<thead><tr><th>Variante de visita</th><th>Pacientes</th>${cols.map(([n]) => `<th>${n}</th>`).join('')}</tr></thead><tbody>${grupos.map(g => {
+      const d = S.done.filter(g.f); return `<tr class="${g.tot || g.sub ? 't' : ''}"><td>${g.k ? swCol(g.k) : ''}${g.n}</td><td>${d.length}</td>${cols.map(([, f]) => `<td>${f1(prom(d, f))}</td>`).join('')}</tr>`; }).join('')}</tbody>`;
+    $('nota').innerHTML = 'Promedios en minutos de los pacientes atendidos. <b>Tiempo de ciclo = Σ (espera + atención) + hidratación + retraso por baño</b>. El baño general ocurre mientras espera (conserva su lugar): solo agrega tiempo ("retraso por baño") si el paciente regresa después de que ya le tocaba.';
   } else if (TAB === 'reg') {
     const hm = v => v === undefined ? '—' : hms(v), mn = v => isFinite(v) ? v.toFixed(1) : '—', ult = S.done.slice(-150).reverse();
-    tb.innerHTML = `<thead><tr><th>#</th><th>Tipo</th><th>Llegada</th><th>Inicio recepción</th><th>Fin recepción</th><th>Inicio InBody</th><th>Fin InBody</th><th>Inicio consulta</th><th>Fin consulta</th><th>Salida</th><th>Decisión</th><th>Espera total</th><th>Tiempo de ciclo</th></tr></thead><tbody>${ult.map(p => {
-      const tp = TIPOS.find(x => x.k === p.k), dir = p.ruta.every(k => p.directo[k]);
-      return `<tr><td>${p.id}</td><td style="text-align:left"><i class="sw" style="background:${COLOR[p.k]}"></i>${tp.n}</td><td>${hm(p.tArr)}</td><td>${hm(p.i.rec)}</td><td>${hm(p.f.rec)}</td><td>${hm(p.i.ib)}</td><td>${hm(p.f.ib)}</td><td>${hm(p.i.co)}</td><td>${hm(p.f.co)}</td><td>${hm(p.tF)}</td>
-        <td>${dir ? '<span class="pill ok">Pasó directo</span>' : '<span class="pill warn">Esperó en sala</span>'}</td><td>${mn(esperaTot(p))}</td><td><b style="color:${p.tF - p.tArr > meta(p) ? 'var(--bad)' : 'inherit'}">${mn(p.tF - p.tArr)}</b></td></tr>`; }).join('')}</tbody>`;
-    $('nota').innerHTML = `Últimos ${ult.length} de ${S.done.length} pacientes atendidos (más reciente arriba; en rojo los que superan su meta). <button id="btnCSV">⬇ Descargar registro completo (CSV)</button>`;
+    tb.innerHTML = `<thead><tr><th>#</th><th>Variante</th><th>Sexo</th><th>Llegada</th><th>Inicio recepción</th><th>Fin recepción</th><th>Inicio antidoping</th><th>Fin antidoping</th><th>Intentos</th><th>Inicio InBody</th><th>Fin InBody</th><th>Inicio consulta</th><th>Fin consulta</th><th>Salida</th><th>Baño general</th><th>Decisión</th><th>Espera total</th><th>Tiempo de ciclo</th></tr></thead><tbody>${ult.map(p => {
+      const dir = p.ruta.every(k => p.directo[k]);
+      return `<tr><td>${p.id}</td><td style="text-align:left">${swCol(p.k)}${nombreVar(p)}</td><td>${p.sexo}</td><td>${hm(p.tArr)}</td><td>${hm(p.i.rec)}</td><td>${hm(p.f.rec)}</td><td>${hm(p.i.ad)}</td><td>${hm(p.f.ad)}</td>
+        <td>${p.ad ? p.intentos + (p.sinMuestra ? ' <span class="pill bad">sin muestra</span>' : '') : '—'}</td><td>${hm(p.i.ib)}</td><td>${hm(p.f.ib)}</td><td>${hm(p.i.co)}</td><td>${hm(p.f.co)}</td><td>${hm(p.tF)}</td>
+        <td>${p.wcHecho ? mn(p.wcT) + ' min' : '—'}</td><td>${dir ? '<span class="pill ok">Pasó directo</span>' : '<span class="pill warn">Esperó en sala</span>'}</td><td>${mn(esperaTot(p))}</td><td><b style="color:${ciclo(p) > meta(p) ? 'var(--bad)' : 'inherit'}">${mn(ciclo(p))}</b></td></tr>`; }).join('')}</tbody>`;
+    $('nota').innerHTML = `Últimos ${ult.length} de ${S.done.length} pacientes atendidos (más reciente arriba; en rojo los que superan su meta). Antidoping: "Inicio" = primer intento, "Fin" = último intento. <button id="btnCSV">⬇ Descargar registro completo (CSV)</button>`;
   } else {
-    const fr = fracciones(), lMed = demandaDia() / ((P.close - P.open) / 60);
-    const mmc = (l, mu, c) => { const rho = l / (c * mu); if (rho >= 1) return { rho, pw: 1, wq: Infinity }; const pw = Stats.erlangC(l, mu, c); return { rho, pw, wq: pw / (c * mu - l) * 60 }; };
+    const fr = fracciones(), lMed = demandaDia() / ((P.close - P.open) / 60), E = intentosEsp();
+    const mmc = (l, mu, c) => { if (c <= 0) return { rho: Infinity, pw: 1, wq: Infinity }; const rho = l / (c * mu); if (rho >= 1) return { rho, pw: 1, wq: Infinity }; const pw = Stats.erlangC(l, mu, c); return { rho, pw, wq: pw / (c * mu - l) * 60 }; };
     const wf = v => isFinite(v) ? v.toFixed(2) : '∞ (inestable)';
-    const filas = ETA.map(e => {
-      const mu = 60 / P[e.tk], a = mmc(lMed * fr[e.k], mu, P[e.nk]), b = mmc(LM * fr[e.k], mu, P[e.nk]), d = S.done.filter(p => usa(p, e.k)), dec = S.dec[e.k], tot = dec.directo + dec.espera;
-      return `<tr><td>${e.n}</td><td>${P[e.nk]} ${e.srv}</td><td>${mu.toFixed(1)}/h</td><td>${(lMed * fr[e.k]).toFixed(1)} / ${(LM * fr[e.k]).toFixed(1)}</td><td>${pillRho(a.rho)} / ${pillRho(b.rho)}</td>
-        <td>${pc(a.pw)} / ${pc(b.pw)}</td><td>${wf(a.wq)} / ${wf(b.wq)}</td><td>${S.u[e.k].c ? pc(S.u[e.k].b / S.u[e.k].c) : '—'}</td><td>${f1(prom(d, p => wk(p, e.k)))}</td><td>${tot ? pc(dec.directo / tot) : '—'}</td></tr>`;
-    }).join('');
-    tb.innerHTML = `<thead><tr><th>Etapa</th><th>Capacidad c</th><th>μ por servidor</th><th>λ medio / máx</th><th>ρ medio / máx</th><th>P(espera) Erlang C</th><th>Wq teórica (min) medio / máx</th><th>ρ simulada</th><th>Wq simulada (min)</th><th>Pasó directo (sim)</th></tr></thead><tbody>${filas}</tbody>`;
-    $('nota').innerHTML = `Fórmula estacionaria <b>M/M/c</b>: ρ = λ / (c·μ); P(espera) = Erlang C(c, λ/μ); <b>Wq = C / (c·μ − λ)</b>. λ medio del horario = ${lMed.toFixed(1)} pac/h, λ máximo = ${LM.toFixed(1)} pac/h. "Pasó directo" debería parecerse a 1 − P(espera).`;
+    const nodos = [
+      { n: 'Recepción', k: 'rec', c: P.nRec, t: P.tRec, f: 1, cap: `${P.nRec} recepciones` },
+      { n: 'Antidoping (incluye reintentos)', k: 'ad', c: P.adH + P.adM, t: P.tAd, f: fr.ad * E, cap: `${P.adH} H + ${P.adM} M` },
+      { n: 'InBody', k: 'ib', c: P.nIb, t: P.tIb, f: fr.ib, cap: `${P.nIb} equipos` },
+      { n: 'Consultorios', k: 'co', c: P.nCo, t: P.tCo, f: fr.co, cap: `${P.nCo} consultorios` },
+      { n: 'Baños generales', k: 'wc', c: P.wcH + P.wcM, t: P.tWc, f: fr.wc, cap: `${P.wcH} H + ${P.wcM} M` },
+    ];
+    tb.innerHTML = `<thead><tr><th>Etapa</th><th>Capacidad c</th><th>μ por lugar</th><th>λ medio / máx</th><th>ρ medio / máx</th><th>P(espera) Erlang C</th><th>Wq teórica (min) medio / máx</th><th>ρ simulada</th><th>Wq simulada (min)</th><th>Pasó directo (sim)</th></tr></thead><tbody>${nodos.map(nd => {
+      const mu = 60 / nd.t, a = mmc(lMed * nd.f, mu, nd.c), b = mmc(LM * nd.f, mu, nd.c), dec = S.dec[nd.k], tot = dec.directo + dec.espera;
+      const wsim = f1(prom(S.done.filter(p => usa(p, nd.k)), p => wk(p, nd.k)));
+      return `<tr><td>${nd.n}</td><td>${nd.cap}</td><td>${mu.toFixed(1)}/h</td><td>${(lMed * nd.f).toFixed(1)} / ${(LM * nd.f).toFixed(1)}</td><td>${pillRho(a.rho)} / ${pillRho(b.rho)}</td>
+        <td>${pc(a.pw)} / ${pc(b.pw)}</td><td>${wf(a.wq)} / ${wf(b.wq)}</td><td>${S.u[nd.k].c ? pc(S.u[nd.k].b / S.u[nd.k].c) : '—'}</td><td>${nd.k === 'wc' ? '—' : wsim}</td><td>${nd.k !== 'wc' && tot ? pc(dec.directo / tot) : '—'}</td></tr>`; }).join('')}</tbody>`;
+    $('nota').innerHTML = `Fórmula estacionaria <b>M/M/c</b>: ρ = λ / (c·μ); P(espera) = Erlang C(c, λ/μ); <b>Wq = C / (c·μ − λ)</b>. λ medio del horario = ${lMed.toFixed(1)} pac/h, λ máximo = ${LM.toFixed(1)} pac/h. En antidoping y baños se suman ambos sexos como si fueran un solo grupo; al estar separados por sexo, la espera real suele ser mayor.`;
   }
 }
 
@@ -655,9 +827,9 @@ function dibujarTabla() {
 function pmf(k, mu) { if (mu <= 0) return k === 0 ? 1 : 0; let l = -mu + k * Math.log(mu); for (let i = 2; i <= k; i++) l -= Math.log(i); return Math.exp(l); }
 function muV(a, b) { let s = 0; for (let m = a; m < b; m += 1) s += lam(m) / 60; return s; }
 function dibujarGrafica() {
-  const svg = $('chart'), W = svg.clientWidth || 900, H = 280, Pd = { l: 44, r: 14, t: 14, b: 28 };
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
-  const modo = $('selChart').value, w = Math.max(1, +$('win').value || 15), kk = Math.max(0, Math.round(+$('kIn').value || 0)), muNow = lam(S.t) * w / 60;
+  const svg = $('chart'), W = svg.clientWidth || 900, modo = $('selChart').value, H = modo === 'etapas' ? 330 : 280, Pd = { l: 44, r: 14, t: 14, b: 28 };
+  svg.style.height = H + 'px'; svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
+  const w = Math.max(1, +$('win').value || 15), kk = Math.max(0, Math.round(+$('kIn').value || 0)), muNow = lam(S.t) * w / 60;
   let lo = 0; for (let i = 0; i < kk; i++) lo += pmf(i, muNow);
   $('pois').innerHTML = `Con λ ahora = ${lam(S.t).toFixed(1)} pac/h, en ${w} min se esperan μ = ${muNow.toFixed(2)} llegadas. P(X = ${kk}) = ${(pmf(kk, muNow) * 100).toFixed(1)}% · P(X ≥ ${kk}) = ${((1 - lo) * 100).toFixed(1)}%`;
   const sinDatos = () => { $('cleg').innerHTML = '<span>Todavía no hay datos suficientes: deja correr la simulación</span>'; };
@@ -680,22 +852,23 @@ function dibujarGrafica() {
   let ley = [];
   if (modo === 'tiempos') {
     const d = S.done; if (d.length < 2) return sinDatos();
-    const X = ejeHoras(), yMax = Math.ceil(Math.max(...Object.values(P.meta), ...d.map(p => p.tF - p.tArr)) * 1.1 / 10) * 10, Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
+    const X = ejeHoras(), yMax = Math.ceil(Math.max(...VAR.map(metaVar), ...d.map(ciclo)) * 1.1 / 10) * 10, Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
     gridY(yMax, Y); txt(svg, 'min', Pd.l, Pd.t - 3, 10, 'var(--muted)');
     for (const tp of TIPOS) el('line', { x1: Pd.l, x2: W - Pd.r, y1: Y(P.meta[tp.k]), y2: Y(P.meta[tp.k]), stroke: COLOR[tp.k], 'stroke-dasharray': '6 4', 'stroke-opacity': 0.6 }, svg);
     const st = Math.max(1, Math.floor(d.length / 800));
-    for (let i = 0; i < d.length; i += st) el('circle', { cx: X(d[i].tF), cy: Y(d[i].tF - d[i].tArr), r: 2.6, fill: COLOR[d[i].k], 'fill-opacity': 0.75 }, svg);
-    const ma = []; let acc = 0; d.forEach((p, i) => { acc += p.tF - p.tArr; if (i >= 20) acc -= d[i - 20].tF - d[i - 20].tArr; ma.push([X(p.tF), Y(acc / Math.min(i + 1, 20))]); });
+    for (let i = 0; i < d.length; i += st) el('circle', { cx: X(d[i].tF), cy: Y(ciclo(d[i])), r: d[i].ad && d[i].k !== 'A' ? 3.4 : 2.6, fill: COLOR[d[i].k], 'fill-opacity': 0.75, ...(d[i].ad && d[i].k !== 'A' ? { stroke: 'var(--tA)', 'stroke-width': 1.5 } : {}) }, svg);
+    const ma = []; let acc = 0; d.forEach((p, i) => { acc += ciclo(p); if (i >= 20) acc -= ciclo(d[i - 20]); ma.push([X(p.tF), Y(acc / Math.min(i + 1, 20))]); });
     linea(ma, 'var(--ink)');
-    const reg = Stats.linreg(d.map(p => p.tF / 60), d.map(p => p.tF - p.tArr));
+    const reg = Stats.linreg(d.map(p => p.tF / 60), d.map(ciclo));
     if (reg) linea([[X(d[0].tF), Y(Math.max(0, reg.f(d[0].tF / 60)))], [X(S.t), Y(Math.max(0, reg.f(S.t / 60)))]], 'var(--trend)', 2.5);
-    ley = ['<span>Punto = paciente (color = tipo de visita)</span>', '<span><i class="sw" style="background:var(--ink)"></i>Media móvil (20 pacientes)</span>',
+    ley = ['<span>Punto = paciente (color = tipo de visita; borde morado = también hizo antidoping)</span>', '<span><i class="sw" style="background:var(--ink)"></i>Media móvil (20 pacientes)</span>',
       `<span><i class="sw" style="background:var(--trend)"></i>Tendencia lineal${reg ? `: ${reg.b >= 0 ? '+' : ''}${reg.b.toFixed(2)} min por hora · R² ${reg.r2.toFixed(2)}` : ''}</span>`, '<span>--- metas por tipo</span>'];
   } else if (modo === 'colas') {
-    const sr = S.serie, X = ejeHoras(), yMax = Math.ceil(Math.max(5, ...sr.map(s => Math.max(s.rec, s.ib, s.co, s.sis))) / 5) * 5, Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
+    const sr = S.serie, X = ejeHoras(), ks = ['rec', 'ad', 'ib', 'co', 'wc', 'hid', 'sis'], yMax = Math.ceil(Math.max(5, ...sr.map(s => Math.max(...ks.map(k => s[k])))) / 5) * 5, Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
     gridY(yMax, Y); const st = Math.max(1, Math.floor(sr.length / 600)), ser = k => sr.filter((_, i) => i % st === 0).map(s => [X(s.t), Y(s[k])]);
-    linea(ser('sis'), 'var(--muted)', 1.5, '4 3'); linea(ser('rec'), 'var(--accent)'); linea(ser('ib'), 'var(--tI)'); linea(ser('co'), 'var(--tC)');
-    ley = [['var(--accent)', 'Cola de recepción'], ['var(--tI)', 'Cola de InBody'], ['var(--tC)', 'Cola de consultorios'], ['var(--muted)', 'Pacientes en el hospital']].map(([c, n]) => `<span><i class="sw" style="background:${c}"></i>${n}</span>`);
+    const L = [['sis', 'var(--muted)', 'Pacientes en el hospital', '4 3'], ['rec', 'var(--accent)', 'Cola de recepción'], ['ad', 'var(--tA)', 'Cola de antidoping'], ['hid', 'var(--agua)', 'Hidratándose'], ['ib', 'var(--tI)', 'Cola de InBody'], ['co', 'var(--tC)', 'Cola de consultorios'], ['wc', 'var(--sxM)', 'Fila de baños generales']];
+    L.forEach(([k, c, , dash]) => linea(ser(k), c, dash ? 1.5 : 2, dash));
+    ley = L.map(([, c, n]) => `<span><i class="sw" style="background:${c}"></i>${n}</span>`);
   } else if (modo === 'poisson') {
     const a0 = Math.ceil(Math.max(P.open, S.t0) / w) * w, a1 = Math.min(P.close, S.t), o = [], mus = [];
     for (let s = a0; s + w <= a1; s += w) { let c = 0; for (const x of S.arrT) if (x >= s && x < s + w) c++; o.push(c); mus.push(muV(s, s + w)); }
@@ -705,7 +878,7 @@ function dibujarGrafica() {
     const mo = o.reduce((a, v) => a + v, 0) / o.length, me = mus.reduce((a, v) => a + v, 0) / mus.length;
     ley = [`<span><i class="sw" style="background:var(--tIC)"></i>Ventanas observadas (n = ${o.length}, de ${w} min)</span>`, '<span><i class="sw" style="background:var(--trend)"></i>Frecuencia esperada con Poisson, μ = λ(t) × ventana</span>', `<span>Promedio por ventana: simulado ${mo.toFixed(2)} · esperado ${me.toFixed(2)}</span>`];
   } else if (modo === 'expo' || modo === 'campana') {
-    const d = modo === 'expo' ? S.arrT.slice(1).map((t, i) => t - S.arrT[i]) : S.done.map(p => p.tF - p.tArr);
+    const d = modo === 'expo' ? S.arrT.slice(1).map((t, i) => t - S.arrT[i]) : S.done.map(ciclo);
     if (d.length < 8) return sinDatos();
     const n = d.length, me = d.reduce((a, v) => a + v, 0) / n, sd = Math.sqrt(d.reduce((a, v) => a + (v - me) ** 2, 0) / (n - 1));
     const xm = Math.max(Stats.pct(d, 0.99) * 1.1, modo === 'expo' ? me * 3 : me + 3 * sd, 1), nb = Math.max(8, Math.min(30, Math.round(Math.sqrt(n) * 1.5))), bw = xm / nb, cnt = Array(nb).fill(0);
@@ -722,19 +895,19 @@ function dibujarGrafica() {
     }
   } else if (modo === 'dispersion') {
     const d = S.done; if (d.length < 5) return sinDatos();
-    const xmax = Math.max(5, ...d.map(p => p.carga)) * 1.1, yMax = Math.ceil(Math.max(...d.map(p => p.tF - p.tArr)) * 1.1 / 10) * 10;
+    const xmax = Math.max(5, ...d.map(p => p.carga)) * 1.1, yMax = Math.ceil(Math.max(...d.map(ciclo)) * 1.1 / 10) * 10;
     const X = v => Pd.l + v / xmax * (W - Pd.l - Pd.r), Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
     gridY(yMax, Y); const stp = Math.max(1, Math.ceil(xmax / 10)); for (let v = 0; v <= xmax; v += stp) txt(svg, v, X(v), H - 8, 11, 'var(--muted)', 'middle');
     txt(svg, 'pacientes en el hospital al llegar', W - Pd.r, H - 22, 10, 'var(--muted)', 'end');
-    for (const p of d) el('circle', { cx: X(p.carga), cy: Y(p.tF - p.tArr), r: 2.6, fill: COLOR[p.k], 'fill-opacity': 0.65 }, svg);
-    const reg = Stats.linreg(d.map(p => p.carga), d.map(p => p.tF - p.tArr));
+    for (const p of d) el('circle', { cx: X(p.carga), cy: Y(ciclo(p)), r: 2.6, fill: COLOR[p.k], 'fill-opacity': 0.65 }, svg);
+    const reg = Stats.linreg(d.map(p => p.carga), d.map(ciclo));
     if (reg) linea([[X(0), Y(Math.max(0, reg.f(0)))], [X(xmax), Y(Math.min(yMax, reg.f(xmax)))]], 'var(--trend)', 2.5);
     ley = ['<span>Punto = paciente (color = tipo de visita)</span>', `<span><i class="sw" style="background:var(--trend)"></i>Regresión${reg ? `: tiempo ≈ ${reg.a.toFixed(1)} + ${reg.b.toFixed(2)} × pacientes · R² = ${reg.r2.toFixed(2)}` : ''}</span>`, '<span>Cada paciente extra en el hospital al llegar agrega "b" minutos a su tiempo de ciclo</span>'];
   } else {
-    const tramos = [['Espera recepción', p => wk(p, 'rec'), 'var(--muted)'], ['Recepción', p => sk(p, 'rec'), 'var(--accent)'], ['Espera InBody', p => wk(p, 'ib'), 'var(--warn)'],
-      ['InBody', p => sk(p, 'ib'), 'var(--tI)'], ['Espera consulta', p => wk(p, 'co'), 'var(--bad)'], ['Consulta', p => sk(p, 'co'), 'var(--tC)']];
-    const datos = TIPOS.map(tp => { const d = S.done.filter(p => p.k === tp.k), pr = tramos.map(([, f]) => d.length ? d.reduce((a, p) => a + f(p), 0) / d.length : 0); return { n: tp.n, d: d.length, pr, tot: pr.reduce((a, b) => a + b, 0) }; });
-    const L = 160, xmax = Math.ceil(Math.max(...Object.values(P.meta), ...datos.map(x => x.tot)) * 1.1 / 5) * 5, XX = v => L + v / xmax * (W - L - Pd.r), bh = (H - Pd.t - Pd.b) / datos.length;
+    const tramos = [['Espera recepción', p => wk(p, 'rec'), 'var(--muted)'], ['Recepción', p => sk(p, 'rec'), 'var(--accent)'], ['Espera antidoping', p => wk(p, 'ad'), 'var(--warn)'], ['Toma de muestra', p => sk(p, 'ad'), 'var(--tA)'],
+      ['Hidratación', p => p.hidT, 'var(--agua)'], ['Espera InBody', p => wk(p, 'ib'), '#c9a227'], ['InBody', p => sk(p, 'ib'), 'var(--tI)'], ['Espera consulta', p => wk(p, 'co'), 'var(--bad)'], ['Consulta', p => sk(p, 'co'), 'var(--tC)'], ['Retraso por baño', retrasoBano, 'var(--sxM)']];
+    const datos = VAR.map(v => { const d = S.done.filter(p => p.v === v.v), pr = tramos.map(([, f]) => d.length ? d.reduce((a, p) => a + f(p), 0) / d.length : 0); return { n: v.n, d: d.length, pr, tot: pr.reduce((a, b) => a + b, 0) }; });
+    const L = 220, xmax = Math.ceil(Math.max(...VAR.map(metaVar), ...datos.map(x => x.tot)) * 1.1 / 5) * 5, XX = v => L + v / xmax * (W - L - Pd.r), bh = (H - Pd.t - Pd.b) / datos.length;
     for (let v = 0; v <= xmax; v += xmax > 60 ? 10 : 5) { el('line', { x1: XX(v), x2: XX(v), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--line)' }, svg); txt(svg, v, XX(v), H - 8, 11, 'var(--muted)', 'middle'); }
     datos.forEach((x, i) => {
       const y = Pd.t + i * bh + bh * 0.2, h = bh * 0.6; let acc = 0;
@@ -760,7 +933,10 @@ function actualizarUI() { dibujarTiempos(); dibujarLive(); dibujarTabla(); dibuj
 $('cfg').addEventListener('input', e => {
   const k = e.target.dataset.k, v = parseFloat(e.target.value); if (!k || !isFinite(v)) return;
   let x = Math.min(+e.target.max, Math.max(+e.target.min, v)); if (CAPACIDAD.includes(k)) x = Math.round(x);
-  setP(k, x); if (CAPACIDAD.includes(k)) { syncCapacidad(); construirPlano(); } recalc();
+  setP(k, x);
+  if ((k === 'adH' || k === 'adM') && P.adH + P.adM === 0) { const o = k === 'adH' ? 'adM' : 'adH'; P[o] = 1; $('f_' + o).value = 1; }   // al menos un baño de antidoping
+  if (CAPACIDAD.includes(k)) { syncCapacidad(); construirPlano(); }
+  recalc();
 });
 $('picos').addEventListener('input', e => {
   const i = e.target.dataset.i; if (i === undefined) return; const f = e.target.dataset.f, v = f === 't' ? toMin(e.target.value) : parseFloat(e.target.value);
@@ -787,19 +963,21 @@ document.querySelector('.tabs').onclick = e => { const b = e.target.closest('but
 $('nota').addEventListener('click', e => {
   if (e.target.id !== 'btnCSV') return;
   const hm = v => v === undefined ? '' : hms(v), mn = v => isFinite(v) ? v.toFixed(2) : '';
-  const cols = ['id', 'tipo', 'llegada', 'inicio_recepcion', 'fin_recepcion', 'inicio_inbody', 'fin_inbody', 'inicio_consulta', 'fin_consulta', 'salida', 'decision', 'espera_recepcion_min', 'espera_inbody_min', 'espera_consulta_min', 'espera_total_min', 'tiempo_ciclo_min'];
-  const filas = S.done.map(p => [p.id, p.k, hm(p.tArr), hm(p.i.rec), hm(p.f.rec), hm(p.i.ib), hm(p.f.ib), hm(p.i.co), hm(p.f.co), hm(p.tF), p.ruta.every(k => p.directo[k]) ? 'paso_directo' : 'espero_en_sala',
-    mn(wk(p, 'rec')), usa(p, 'ib') ? mn(wk(p, 'ib')) : '', usa(p, 'co') ? mn(wk(p, 'co')) : '', mn(esperaTot(p)), mn(p.tF - p.tArr)].join(','));
+  const cols = ['id', 'variante', 'sexo', 'llegada', 'inicio_recepcion', 'fin_recepcion', 'inicio_antidoping', 'fin_antidoping', 'intentos_antidoping', 'sin_muestra', 'hidratacion_min', 'inicio_inbody', 'fin_inbody', 'inicio_consulta', 'fin_consulta', 'salida',
+    'bano_general_min', 'decision', 'espera_recepcion_min', 'espera_antidoping_min', 'espera_inbody_min', 'espera_consulta_min', 'espera_total_min', 'tiempo_ciclo_min'];
+  const filas = S.done.map(p => [p.id, p.v, p.sexo, hm(p.tArr), hm(p.i.rec), hm(p.f.rec), hm(p.i.ad), hm(p.f.ad), p.ad ? p.intentos : '', p.sinMuestra ? 'si' : '', p.ad ? mn(p.hidT) : '', hm(p.i.ib), hm(p.f.ib), hm(p.i.co), hm(p.f.co), hm(p.tF),
+    p.wcHecho ? mn(p.wcT) : '', p.ruta.every(k => p.directo[k]) ? 'paso_directo' : 'espero_en_sala', mn(wk(p, 'rec')), usa(p, 'ad') ? mn(wk(p, 'ad')) : '', usa(p, 'ib') ? mn(wk(p, 'ib')) : '', usa(p, 'co') ? mn(wk(p, 'co')) : '', mn(esperaTot(p)), mn(ciclo(p))].join(','));
   const blob = new Blob(['﻿' + [cols.join(','), ...filas].join('\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'registro_pacientes.csv'; a.click(); URL.revokeObjectURL(a.href);
 });
 window.addEventListener('resize', () => { dibujarGrafica(); dibujarDemanda(); });
 $('leg').innerHTML = TIPOS.map(t => `<span><i class="sw" style="background:${COLOR[t.k]};border-radius:50%"></i>${t.n}</span>`).join('') +
-  '<span>Estela = camino recorrido · línea punteada = camino que le falta · halo rojo = ya superó su meta de tiempo total · el color en cada lugar indica a quién se atiende y la barra su avance</span>';
+  '<span><i class="sw" style="background:var(--tA);border-radius:50%;border:2px solid #fff;outline:1px solid var(--line)"></i>punto morado = también hace antidoping</span><span>cabello largo = mujer · vaso de agua = hidratándose para reintentar</span>' +
+  '<span>Estela = camino recorrido · línea punteada = camino que le falta · halo rojo = ya superó su meta · el color en cada lugar indica a quién se atiende y la barra su avance</span>';
 $('open').value = hhmm(P.open); $('close').value = hhmm(P.close); $('ini').value = hhmm(P.open);
 
 // Arranque
-LM = lmax(); construirReloj(); construirCfg(); construirPicos(); reiniciar(P.open);
+LM = lmax(); construirReloj(); S = nuevoEstado(P.open); syncCapacidad(); construirCfg(); construirPicos(); reiniciar(P.open);
 let last = performance.now(), lastUI = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
@@ -809,6 +987,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
 </script>
 </body>
 </html>
