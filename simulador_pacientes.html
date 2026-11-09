@@ -45,7 +45,18 @@
   input[type=time] { width: 112px; }
 
   /* Zona 1 */
-  .top { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: start; }
+  .top { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; align-items: stretch; }
+  .col-der { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .col-der .esc-panel { flex: 1; }
+  .horario { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px; }
+  .horario label { display: flex; flex-direction: column; gap: 2px; font-size: 11.5px; color: var(--muted); }
+  .horario input[type=time] { width: 100%; font-size: 12.5px; padding: 3px 4px; }
+  .esc-panel button, .esc-panel label.btn { font-size: 13px; padding: 4px 9px; }
+  .esc-panel .esc-bar { gap: 6px; }
+  .esc-panel .esc-bar select { width: 100%; min-width: 0; }
+  .esc-panel .esc-bar input[type=text] { flex: 1; width: auto; min-width: 0; }
+  .picos-panel { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 18px; align-items: start; }
+  .picos-panel #demanda { margin-top: 8px; }
   #plano { width: 100%; height: auto; display: block; border-radius: 12px; }
   #plano text { font-family: inherit; }
   .bottleneck { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; text-transform: none; letter-spacing: 0; }
@@ -131,7 +142,7 @@
   .ley-k.punto { width: 9px; height: 9px; border-radius: 50%; }
   .ley-k.cuadro { border-radius: 2px; } .ley-k.triangulo { clip-path: polygon(50% 0, 100% 100%, 0 100%); border-radius: 0; width: 11px; height: 10px; } .ley-k.rombo { transform: rotate(45deg); border-radius: 1px; width: 8px; height: 8px; }
 
-  @media (max-width: 1000px) { .top { grid-template-columns: 1fr; } .live { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 1000px) { .top, .picos-panel { grid-template-columns: 1fr; } .live { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 560px) { .live { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
@@ -158,6 +169,7 @@
     <div class="live" id="live"></div>
   </div>
 
+  <div class="col-der">
   <div class="panel">
     <h2>Reloj de simulación</h2>
     <div class="clock-head">
@@ -166,18 +178,39 @@
     </div>
     <div class="kv" id="relojKV"></div>
     <div class="row"><button class="p" id="play">⏸ Pausar</button><select id="vel" title="Velocidad"></select><button id="reset">↺ Reiniciar</button></div>
-    <div class="row">Iniciar en <input type="time" id="ini"></div>
-    <div class="blk"><h3>Horario del hospital</h3>
-      <div class="row">Apertura <input type="time" id="open"> Cierre <input type="time" id="close"></div></div>
-    <div class="blk"><h3>Horas pico</h3>
-      <div class="muted sm">Un pico es un intervalo de horas en el que llegan más pacientes que la base. Edítalos directo en la gráfica:</div>
-      <ul class="muted sm" style="margin:4px 0 0;padding-left:18px">
-        <li><b>Arrastra</b> un pico para moverlo de horario.</li>
-        <li><b>Estira</b> sus bordes laterales para alargarlo o acortarlo.</li>
-        <li><b>Sube o baja</b> su borde superior para cambiar los pacientes extra.</li>
-        <li><b>Clic</b> en un espacio vacío crea un pico nuevo · la <b>línea punteada</b> es la base y también se arrastra.</li>
-      </ul>
+    <div class="horario"><label>Apertura<input type="time" id="open"></label><label>Cierre<input type="time" id="close"></label><label>Iniciar en<input type="time" id="ini"></label></div>
+  </div>
+  <div class="panel esc-panel">
+    <h2>Escenarios <span class="muted" style="text-transform:none;letter-spacing:0;font-weight:400">· cambia de óptica con un clic</span></h2>
+    <div class="esc-bar">
+      <select id="selEsc" aria-label="Escenario"></select>
+      <span id="escEstado" class="esc-estado ok">Sin cambios</span>
+      <button id="escGuardar" title="Sobrescribe el escenario elegido con los parámetros actuales">💾 Guardar</button>
+      <button id="escEliminar">Eliminar</button>
+    </div>
+    <div class="esc-bar" style="margin-top:6px">
+      <input type="text" id="escNombre" placeholder="Nombre del nuevo escenario" maxlength="60" aria-label="Nombre del nuevo escenario">
+      <button id="escNuevo" class="p" title="Guarda los parámetros actuales como un escenario nuevo">+ Nuevo</button>
+    </div>
+    <div class="esc-bar" style="margin-top:6px">
+      <button id="escExportar" title="Descarga tus escenarios en un archivo">⬇ Exportar</button>
+      <label class="btn" title="Carga escenarios desde un archivo exportado">⬆ Importar<input type="file" id="escImportar" accept=".json,application/json" hidden></label>
+    </div>
+    <div class="esc-aviso" id="escAviso"></div>
+    <div class="muted" style="font-size:11.5px">Guarda todos los parámetros. Al cambiar de escenario la simulación se reinicia. Se quedan en este navegador; <b>Exportar</b> los lleva a otra computadora.</div>
+  </div>
+  </div>
+</section>
+
+<!-- ================= HORAS PICO ================= -->
+<section class="panel">
+  <h2>Horas pico</h2>
+  <div class="picos-panel">
+    <div>
+      <div class="muted sm">Un pico es un intervalo de horas en el que llegan más pacientes que la base. Edítalos directo en la gráfica: <b>arrastra</b> un pico para moverlo, <b>estira</b> sus bordes para cambiar el horario, <b>sube o baja</b> su borde superior para los pacientes extra, <b>clic</b> en un espacio vacío para crear uno; la <b>línea punteada</b> es la base y también se arrastra.</div>
       <svg id="demanda" aria-label="Demanda de pacientes por hora, editable"></svg>
+    </div>
+    <div>
       <div id="picos"></div>
       <button id="addPico">+ Agregar hora pico</button>
     </div>
@@ -186,23 +219,6 @@
 
 <!-- ================= ZONA 2: parámetros ================= -->
 <section>
-  <div class="card" style="margin-bottom:12px">
-    <h3 style="margin-bottom:4px">Escenarios <span class="muted" style="font-weight:400">· guarda todos los parámetros y cambia de óptica con un clic</span></h3>
-    <div class="esc-bar">
-      <select id="selEsc" aria-label="Escenario"></select>
-      <span id="escEstado" class="esc-estado ok">Sin cambios</span>
-      <button id="escGuardar" title="Sobrescribe el escenario elegido con los parámetros actuales">💾 Guardar cambios</button>
-      <span class="sep"></span>
-      <input type="text" id="escNombre" placeholder="Nombre del nuevo escenario" maxlength="60" aria-label="Nombre del nuevo escenario">
-      <button id="escNuevo" class="p">+ Guardar como nuevo</button>
-      <span class="sep"></span>
-      <button id="escEliminar">Eliminar</button>
-      <button id="escExportar" title="Descarga tus escenarios en un archivo">⬇ Exportar</button>
-      <label class="btn" title="Carga escenarios desde un archivo exportado">⬆ Importar<input type="file" id="escImportar" accept=".json,application/json" hidden></label>
-    </div>
-    <div class="esc-aviso" id="escAviso"></div>
-    <div class="muted sm">Un escenario incluye horario, horas pico, demanda, tipos de visita, recepciones, baños, equipos InBody, consultorios y tiempos. Al cambiar de escenario la simulación se reinicia desde la apertura. Se guardan en este navegador; usa <b>Exportar</b> para llevarlos a otra computadora o compartirlos.</div>
-  </div>
   <div class="cfg" id="cfg"></div>
   <div class="card" style="margin-top:12px">
     <h3>Tiempo de espera promedio y tiempo de ciclo <span class="muted" style="font-weight:400">· calculado con los parámetros capturados, para tres niveles de demanda</span></h3>
@@ -1199,7 +1215,7 @@ function pintarEsc() {
   }
   sel.value = ESC_ACT;
   const e = escActual(); $('escGuardar').disabled = !e || e.fijo; $('escEliminar').disabled = !e || e.fijo;
-  $('escGuardar').title = e && e.fijo ? 'Los escenarios de ejemplo no se modifican: usa "Guardar como nuevo"' : 'Sobrescribe el escenario elegido con los parámetros actuales';
+  $('escGuardar').title = e && e.fijo ? 'Los escenarios de ejemplo no se modifican: usa "+ Nuevo"' : 'Sobrescribe el escenario elegido con los parámetros actuales';
   estadoEsc();
 }
 function estadoEsc() {
