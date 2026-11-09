@@ -69,7 +69,10 @@
   .row input[type=number] { width: 50px; }
   .row button { padding: 2px 7px; }
   .blk { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; }
-  #demanda { width: 100%; height: 70px; display: block; }
+  #demanda { width: 100%; height: 160px; display: block; touch-action: none; user-select: none; background: var(--zona); border-radius: 8px; margin: 6px 0; }
+  .pico-row b { color: var(--bad); min-width: 46px; }
+  .pico-row input[type=time] { width: 104px; }
+  .pico-row2 { padding-left: 52px; }
 
   /* Zona 2 */
   .cfg { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
@@ -139,11 +142,16 @@
     <div class="blk"><h3>Horario del hospital</h3>
       <div class="row">Apertura <input type="time" id="open"> Cierre <input type="time" id="close"></div></div>
     <div class="blk"><h3>Horas pico</h3>
-      <div class="muted sm" style="margin-bottom:6px">Cada pico suma una "campana" de pacientes a la base: <b>Hora</b> = momento de máxima afluencia · <b>+pac/h</b> = pacientes por hora extra en ese momento · <b>±h</b> = ancho del pico (a ±h de la hora se tiene ~60% del extra).</div>
+      <div class="muted sm">Un pico es un intervalo de horas en el que llegan más pacientes que la base. Edítalos directo en la gráfica:</div>
+      <ul class="muted sm" style="margin:4px 0 0;padding-left:18px">
+        <li><b>Arrastra</b> un pico para moverlo de horario.</li>
+        <li><b>Estira</b> sus bordes laterales para alargarlo o acortarlo.</li>
+        <li><b>Sube o baja</b> su borde superior para cambiar los pacientes extra.</li>
+        <li><b>Clic</b> en un espacio vacío crea un pico nuevo · la <b>línea punteada</b> es la base y también se arrastra.</li>
+      </ul>
+      <svg id="demanda" aria-label="Demanda de pacientes por hora, editable"></svg>
       <div id="picos"></div>
       <button id="addPico">+ Agregar hora pico</button>
-      <svg id="demanda" aria-label="Curva de demanda"></svg>
-      <div class="muted" style="font-size:11px">Llegadas esperadas λ(t) (pacientes/h) y hora actual</div>
     </div>
   </div>
 </section>
@@ -229,7 +237,7 @@ const ETA = [   // etapas del recorrido y su zona en el plano [x, ancho]
 const ETK = Object.fromEntries(ETA.map(e => [e.k, e]));
 const DEF = {
   open: 420, close: 1080, base: 15,
-  picos: [{ t: 540, extra: 15, w: 1.5 }, { t: 780, extra: 10, w: 1.5 }],
+  picos: [{ ini: 480, fin: 600, extra: 15 }, { ini: 720, fin: 840, extra: 10 }],   // intervalos [ini, fin) en minutos del día
   mix: { C: 35, IC: 30, I: 20, A: 15 }, pctAd: 20, pctAD: 50,
   nRec: 2, tRec: 3,
   nAd: 2, tAd: 8, pFalla: 15, tHidr: 15, maxInt: 3,
@@ -273,12 +281,12 @@ const nombreVar = p => VAR.find(v => v.v === p.v).n;
 
 function lam(m) {
   if (m < P.open || m >= P.close) return 0;
-  let l = P.base; for (const p of P.picos) l += p.extra * Math.exp(-(((m - p.t) / 60) ** 2) / (2 * Math.max(0.1, p.w) ** 2));
+  let l = P.base; for (const p of P.picos) if (m >= p.ini && m < p.fin) l += p.extra;   // base + pacientes extra de cada pico activo
   return l;
 }
 function lmax() { let x = 0; for (let m = P.open; m < P.close; m += 5) x = Math.max(x, lam(m)); return Math.max(x, 1e-6); }
 function demandaDia() { let s = 0; for (let m = P.open; m < P.close; m += 3) s += lam(m) * 3 / 60; return s; }
-function picoAct(m) { return P.picos.find(p => Math.abs(m - p.t) <= p.w * 60); }
+function picoAct(m) { return P.picos.find(p => m >= p.ini && m < p.fin); }
 // Intentos esperados en el baño por paciente: 1 + p + p² + … (hasta el máximo de intentos)
 const intentosEsp = () => { const p = Math.min(0.99, P.pFalla / 100); let s = 0; for (let n = 0; n < P.maxInt; n++) s += p ** n; return s; };
 function fracciones() {
@@ -580,36 +588,106 @@ function reloj() {
   $('dig').textContent = hhmm(m);
   const f = $('franja'), pk = picoAct(m);
   if (m < P.open || m >= P.close) { f.className = 'tag'; f.textContent = S.fin ? 'Fin del día' : m < P.open ? 'Antes de abrir' : 'Cerrado, atendiendo pendientes'; }
-  else if (pk) { f.className = 'tag pico'; f.textContent = 'Hora pico ' + hhmm(pk.t); }
+  else if (pk) { f.className = 'tag pico'; f.textContent = `Hora pico ${hhmm(pk.ini)}–${hhmm(pk.fin)}`; }
   else { f.className = 'tag valle'; f.textContent = 'Hora valle'; }
 }
 function relojKV() {
-  const m = S.t, sig = P.picos.map(p => p.t).filter(x => x > m).sort((a, b) => a - b)[0];
+  const m = S.t, sig = P.picos.map(p => p.ini).filter(x => x > m).sort((a, b) => a - b)[0], act = picoAct(m);
   $('relojKV').innerHTML = [['Transcurrido', dur(m - P.open)], ['Restante para cierre', dur(P.close - m)],
-    ['Próxima hora pico', sig !== undefined ? `${hhmm(sig)} · en ${dur(sig - m)}` : '—'], ['Pacientes esperados ahora λ', `${lam(m).toFixed(1)} pac/h`]]
+    act ? ['Hora pico termina', `${hhmm(act.fin)} · en ${dur(act.fin - m)}`] : ['Próxima hora pico', sig !== undefined ? `${hhmm(sig)} · en ${dur(sig - m)}` : '—'], ['Pacientes esperados ahora λ', `${lam(m).toFixed(1)} pac/h`]]
     .map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join('');
 }
+// ---- Gráfica de demanda editable: picos como intervalos ----
+let DRAG = null, DEM = null;
+const snap15 = m => Math.round(m / 15) * 15;
 function dibujarDemanda() {
-  const svg = $('demanda'), W = svg.clientWidth || 300, H = 70; svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
-  const a = P.open, c = P.close; let mx = 1; for (let m = a; m < c; m += 5) mx = Math.max(mx, lam(m));
-  const X = m => 4 + (m - a) / (c - a) * (W - 8), Y = l => H - 14 - l / mx * (H - 22), pts = [];
-  for (let m = a; m <= c; m += 5) pts.push(`${X(m).toFixed(1)},${Y(lam(Math.min(m, c - 0.01))).toFixed(1)}`);
-  el('polyline', { points: `${X(a)},${H - 14} ${pts.join(' ')} ${X(c)},${H - 14}`, fill: 'var(--accent)', 'fill-opacity': 0.15, stroke: 'var(--accent)', 'stroke-width': 1.5 }, svg);
-  for (const p of P.picos) if (p.t >= a && p.t <= c) txt(svg, hhmm(p.t), X(p.t), Y(lam(p.t)) - 3, 9, 'var(--bad)', 'middle');
-  for (let m = Math.ceil(a / 120) * 120; m <= c; m += 120) txt(svg, String(m / 60), X(m), H - 2, 9, 'var(--muted)', 'middle');
+  const svg = $('demanda'), W = svg.clientWidth || 300, H = 160, pl = 28, pr = 18, pt = 18, pb = 22;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
+  const a = P.open, c = P.close; let mx = P.base; for (let m = a; m < c; m += 5) mx = Math.max(mx, lam(m));
+  const yMax = DRAG ? DRAG.yMax : Math.max(10, Math.ceil(mx * 1.3 / 10) * 10);
+  const X = m => pl + (m - a) / (c - a) * (W - pl - pr), Xi = x => a + (x - pl) / (W - pl - pr) * (c - a);
+  const Y = l => H - pb - l / yMax * (H - pt - pb), Yi = y => (H - pb - y) / (H - pt - pb) * yMax;
+  DEM = { X, Xi, Y, Yi, a, c, W, yMax };
+  for (let i = 0; i <= 2; i++) { const v = yMax * i / 2; el('line', { x1: pl, x2: W - pr, y1: Y(v), y2: Y(v), stroke: 'var(--line)' }, svg); txt(svg, Math.round(v), pl - 4, Y(v) + 3, 9, 'var(--muted)', 'end'); }
+  const paso = (c - a) > 600 ? 120 : 60;
+  for (let m = Math.ceil(a / 60) * 60; m <= c; m += 60) { el('line', { x1: X(m), x2: X(m), y1: H - pb, y2: H - pb + 3, stroke: 'var(--muted)' }, svg); if (m % paso === 0) txt(svg, hhmm(m), X(m), H - 7, 9, 'var(--muted)', 'middle'); }
+  txt(svg, 'pac/h', pl - 4, pt - 6, 9, 'var(--muted)', 'end');
+  // Picos: bandas sobre la base con agarraderas
+  P.picos.forEach((p, i) => {
+    const x1 = X(Math.max(a, p.ini)), x2 = X(Math.min(c, p.fin)), yT = Y(P.base + p.extra), yB = Y(P.base), act = DRAG && DRAG.i === i;
+    el('rect', { x: x1, y: yT, width: Math.max(2, x2 - x1), height: Math.max(1, yB - yT), rx: 3, fill: 'var(--bad)', 'fill-opacity': act ? 0.34 : 0.2, stroke: 'var(--bad)', 'stroke-opacity': 0.6 }, svg);
+    const ym = Math.max(yT + 2, (yT + yB) / 2 - 8);
+    el('rect', { x: x1 - 2.5, y: ym, width: 5, height: 16, rx: 2.5, fill: 'var(--bad)' }, svg);
+    el('rect', { x: x2 - 2.5, y: ym, width: 5, height: 16, rx: 2.5, fill: 'var(--bad)' }, svg);
+    el('rect', { x: (x1 + x2) / 2 - 9, y: yT - 2.5, width: 18, height: 5, rx: 2.5, fill: 'var(--bad)' }, svg);
+    txt(svg, `+${p.extra}`, (x1 + x2) / 2, yT - 6, 10, 'var(--bad)', 'middle', 700);
+    if (x2 - x1 > 64) txt(svg, `${hhmm(p.ini)}–${hhmm(p.fin)}`, (x1 + x2) / 2, Math.min(yB - 4, yT + 16), 8.5, 'var(--bad)', 'middle', 600);
+  });
+  // Demanda total λ(t) en escalones
+  const pts = []; let prev = null;
+  for (let m = a; m <= c; m += 5) { const l = lam(Math.min(m, c - 0.01)); if (prev !== null && l !== prev) pts.push(`${X(m).toFixed(1)},${Y(prev).toFixed(1)}`); pts.push(`${X(m).toFixed(1)},${Y(l).toFixed(1)}`); prev = l; }
+  el('polyline', { points: pts.join(' '), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2 }, svg);
+  // Base arrastrable
+  el('line', { x1: pl, x2: W - pr, y1: Y(P.base), y2: Y(P.base), stroke: 'var(--accent)', 'stroke-width': 1.5, 'stroke-dasharray': '5 3' }, svg);
+  txt(svg, `base ${P.base} pac/h`, W - pr - 2, Y(P.base) + 11, 9, 'var(--accent)', 'end', 700);
   const ht = Math.min(c, Math.max(a, S.t));
-  el('line', { x1: X(ht), x2: X(ht), y1: 4, y2: H - 14, stroke: 'var(--ink)', 'stroke-width': 1.5, 'stroke-dasharray': '3 2' }, svg);
+  el('line', { x1: X(ht), x2: X(ht), y1: pt - 4, y2: H - pb, stroke: 'var(--ink)', 'stroke-width': 1.5, 'stroke-dasharray': '3 2' }, svg);
+  txt(svg, 'ahora', X(ht) + 3, pt - 6, 8.5, 'var(--ink)', 'start', 600);
 }
+function puntoDemanda(e) { const r = $('demanda').getBoundingClientRect(); return { x: (e.clientX - r.left) * (DEM.W / r.width), y: (e.clientY - r.top) * (160 / r.height) }; }
+function tocaDemanda(x, y) {
+  const { X, Y } = DEM;
+  for (let i = P.picos.length - 1; i >= 0; i--) {
+    const p = P.picos[i], x1 = X(p.ini), x2 = X(p.fin), yT = Y(P.base + p.extra), yB = Y(P.base);
+    if (x >= x1 - 8 && x <= x2 + 8 && y >= yT - 9 && y <= yB + 4) {
+      if (Math.abs(x - x1) <= 8) return { i, modo: 'ini' };
+      if (Math.abs(x - x2) <= 8) return { i, modo: 'fin' };
+      if (Math.abs(y - yT) <= 8) return { i, modo: 'extra' };
+      return { i, modo: 'mover' };
+    }
+  }
+  if (Math.abs(y - Y(P.base)) <= 7) return { modo: 'base' };
+  return { modo: 'nuevo' };
+}
+const CURSOR = { ini: 'ew-resize', fin: 'ew-resize', extra: 'ns-resize', base: 'ns-resize', mover: 'grab', nuevo: 'copy' };
+$('demanda').addEventListener('pointerdown', e => {
+  if (!DEM) return; const { x, y } = puntoDemanda(e); let h = tocaDemanda(x, y);
+  if (h.modo === 'nuevo') {                                     // clic en vacío: nuevo pico de 1 h centrado en el clic
+    const m = DEM.Xi(x), ini = Math.max(P.open, Math.min(P.close - 60, snap15(m - 30)));
+    P.picos.push({ ini, fin: ini + 60, extra: Math.max(5, Math.round(DEM.Yi(y) - P.base)) });
+    h = { i: P.picos.length - 1, modo: 'mover' };
+  }
+  DRAG = { ...h, x0: x, y0: y, ref: h.i !== undefined ? P.picos[h.i] : null, orig: h.i !== undefined ? { ...P.picos[h.i] } : null, base0: P.base, yMax: DEM.yMax };
+  $('demanda').setPointerCapture(e.pointerId); $('demanda').style.cursor = h.modo === 'mover' ? 'grabbing' : CURSOR[h.modo];
+  recalc(); construirPicos();
+});
+$('demanda').addEventListener('pointermove', e => {
+  if (!DEM) return; const { x, y } = puntoDemanda(e);
+  if (!DRAG) { $('demanda').style.cursor = CURSOR[tocaDemanda(x, y).modo]; return; }
+  const dm = (x - DRAG.x0) / (DEM.W - 46) * (DEM.c - DEM.a), dl = DEM.Yi(y) - DEM.Yi(DRAG.y0), o = DRAG.orig, p = DRAG.ref;
+  if (DRAG.modo === 'mover') { const d = o.fin - o.ini; p.ini = Math.max(P.open, Math.min(P.close - d, snap15(o.ini + dm))); p.fin = p.ini + d; }
+  else if (DRAG.modo === 'ini') p.ini = Math.max(P.open, Math.min(o.fin - 15, snap15(o.ini + dm)));
+  else if (DRAG.modo === 'fin') p.fin = Math.min(P.close, Math.max(o.ini + 15, snap15(o.fin + dm)));
+  else if (DRAG.modo === 'extra') p.extra = Math.max(0, Math.min(500, Math.round(o.extra + dl)));
+  else if (DRAG.modo === 'base') { P.base = Math.max(0, Math.min(500, Math.round(DRAG.base0 + dl))); const f = $('f_base'); if (f) f.value = P.base; }
+  recalc(); syncFilasPicos();
+});
+const soltar = () => { if (!DRAG) return; DRAG = null; $('demanda').style.cursor = ''; construirPicos(); recalc(); };
+$('demanda').addEventListener('pointerup', soltar); $('demanda').addEventListener('pointercancel', soltar);
 function construirPicos() {
-  $('picos').innerHTML = P.picos.map((p, i) => `<div class="row"><input type="time" data-i="${i}" data-f="t" value="${hhmm(p.t)}"> +pac/h <input type="number" data-i="${i}" data-f="extra" value="${p.extra}" min="0" max="500">
-    ±h <input type="number" data-i="${i}" data-f="w" value="${p.w}" min="0.25" max="6" step="0.25"><button data-q="${i}" aria-label="Quitar hora pico" title="Quitar">✕</button></div>
-    <div class="muted" id="picoInfo${i}" style="font-size:11px;margin:-2px 0 8px"></div>`).join('');
+  P.picos.sort((x, y) => x.ini - y.ini);
+  if (DRAG && DRAG.ref) DRAG.i = P.picos.indexOf(DRAG.ref);   // el pico arrastrado conserva su resaltado tras reordenar
+  $('picos').innerHTML = P.picos.length ? P.picos.map((p, i) => `<div class="row pico-row"><b>Pico ${i + 1}</b><input type="time" step="900" data-i="${i}" data-f="ini" value="${hhmm(p.ini)}" aria-label="Inicio"> a <input type="time" step="900" data-i="${i}" data-f="fin" value="${hhmm(p.fin)}" aria-label="Fin"></div>
+    <div class="row pico-row2">+ <input type="number" data-i="${i}" data-f="extra" value="${p.extra}" min="0" max="500" aria-label="Pacientes extra por hora"> pacientes/h extra <button data-q="${i}" aria-label="Quitar pico ${i + 1}" title="Quitar">✕ Quitar</button></div>
+    <div class="muted pico-row2" id="picoInfo${i}" style="font-size:11px;margin:-2px 0 10px"></div>`).join('') : '<div class="muted sm" style="margin-bottom:6px">Sin horas pico: la demanda es la base todo el día.</div>';
   infoPicos();
+}
+function syncFilasPicos() {
+  P.picos.forEach((p, i) => { for (const f of ['ini', 'fin', 'extra']) { const e = document.querySelector(`#picos [data-i="${i}"][data-f="${f}"]`); if (e && document.activeElement !== e) e.value = f === 'extra' ? p.extra : hhmm(p[f]); } });
 }
 function infoPicos() {
   P.picos.forEach((p, i) => { const e = $('picoInfo' + i); if (!e) return;
-    const tot = p.extra * Math.max(0.1, p.w) * Math.sqrt(2 * Math.PI);
-    e.textContent = `→ ${Math.round(lam(p.t))} pac/h a las ${hhmm(p.t)} · fuerte de ${hhmm(p.t - p.w * 60)} a ${hhmm(p.t + p.w * 60)} · ≈ +${Math.round(tot)} pacientes en el día`; });
+    e.textContent = `→ ${P.base + p.extra} pac/h durante ${dur(p.fin - p.ini)} · ≈ +${Math.round(p.extra * (p.fin - p.ini) / 60)} pacientes extra en el día`; });
 }
 
 // ---------------- Zona 2: parámetros ----------------
@@ -878,11 +956,18 @@ $('cfg').addEventListener('input', e => {
   recalc();
 });
 $('picos').addEventListener('input', e => {
-  const i = e.target.dataset.i; if (i === undefined) return; const f = e.target.dataset.f, v = f === 't' ? toMin(e.target.value) : parseFloat(e.target.value);
-  if (isFinite(v)) { P.picos[i][f] = v; recalc(); }
+  const i = e.target.dataset.i; if (i === undefined) return; const f = e.target.dataset.f, p = P.picos[i];
+  const v = f === 'extra' ? parseFloat(e.target.value) : toMin(e.target.value); if (!isFinite(v)) return;
+  if (f === 'ini' && v >= p.fin) return; if (f === 'fin' && v <= p.ini) return;   // el inicio siempre antes del fin
+  p[f] = f === 'extra' ? Math.max(0, Math.min(500, Math.round(v))) : v; recalc();
 });
+$('picos').addEventListener('change', () => construirPicos());
 $('picos').addEventListener('click', e => { const q = e.target.dataset.q; if (q === undefined) return; P.picos.splice(+q, 1); construirPicos(); recalc(); });
-$('addPico').onclick = () => { P.picos.push({ t: Math.min(P.close - 60, Math.round(S.t / 30) * 30 + 60), extra: 10, w: 1 }); construirPicos(); recalc(); };
+$('addPico').onclick = () => {
+  let ini = Math.max(P.open, Math.ceil(S.t / 60) * 60);              // primera hora libre desde ahora
+  while (ini < P.close - 60 && P.picos.some(p => ini < p.fin && ini + 60 > p.ini)) ini += 60;
+  ini = Math.min(ini, P.close - 60); P.picos.push({ ini, fin: ini + 60, extra: 10 }); construirPicos(); recalc();
+};
 function horario() {
   const a = toMin($('open').value), c = toMin($('close').value);
   if (!isFinite(a) || !isFinite(c) || c <= a) { $('open').value = hhmm(P.open); $('close').value = hhmm(P.close); return; }
