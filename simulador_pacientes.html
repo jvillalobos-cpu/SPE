@@ -77,6 +77,16 @@
   /* Zona 2 */
   .cfg { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
   .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .esc-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .esc-bar select { min-width: 220px; font-weight: 600; padding: 5px 8px; }
+  .esc-bar input[type=text] { width: 190px; padding: 5px 8px; }
+  .esc-bar .sep { width: 1px; height: 24px; background: var(--line); margin: 0 4px; }
+  .esc-estado { font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; }
+  .esc-estado.ok { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+  .esc-estado.mod { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+  .esc-aviso { font-size: 12px; color: var(--accent); min-height: 16px; margin-top: 6px; }
+  label.btn { background: var(--zona); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 14px; }
+  label.btn:hover { border-color: var(--accent); }
   .fld { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; }
   .fld label { color: var(--muted); }
   .der { font-size: 11px; color: var(--muted); border-top: 1px dashed var(--line); margin-top: 6px; padding-top: 6px; }
@@ -176,6 +186,23 @@
 
 <!-- ================= ZONA 2: parámetros ================= -->
 <section>
+  <div class="card" style="margin-bottom:12px">
+    <h3 style="margin-bottom:4px">Escenarios <span class="muted" style="font-weight:400">· guarda todos los parámetros y cambia de óptica con un clic</span></h3>
+    <div class="esc-bar">
+      <select id="selEsc" aria-label="Escenario"></select>
+      <span id="escEstado" class="esc-estado ok">Sin cambios</span>
+      <button id="escGuardar" title="Sobrescribe el escenario elegido con los parámetros actuales">💾 Guardar cambios</button>
+      <span class="sep"></span>
+      <input type="text" id="escNombre" placeholder="Nombre del nuevo escenario" maxlength="60" aria-label="Nombre del nuevo escenario">
+      <button id="escNuevo" class="p">+ Guardar como nuevo</button>
+      <span class="sep"></span>
+      <button id="escEliminar">Eliminar</button>
+      <button id="escExportar" title="Descarga tus escenarios en un archivo">⬇ Exportar</button>
+      <label class="btn" title="Carga escenarios desde un archivo exportado">⬆ Importar<input type="file" id="escImportar" accept=".json,application/json" hidden></label>
+    </div>
+    <div class="esc-aviso" id="escAviso"></div>
+    <div class="muted sm">Un escenario incluye horario, horas pico, demanda, tipos de visita, recepciones, baños, equipos InBody, consultorios y tiempos. Al cambiar de escenario la simulación se reinicia desde la apertura. Se guardan en este navegador; usa <b>Exportar</b> para llevarlos a otra computadora o compartirlos.</div>
+  </div>
   <div class="cfg" id="cfg"></div>
   <div class="card" style="margin-top:12px">
     <h3>Tiempo de espera promedio y tiempo de ciclo <span class="muted" style="font-weight:400">· calculado con los parámetros capturados, para tres niveles de demanda</span></h3>
@@ -1089,7 +1116,7 @@ function reiniciar(m) {
   LM = lmax(); S = nuevoEstado(m); syncCapacidad(); construirPlano(); RUN = true; botonPlay(); actualizarUI();
 }
 function recalc() { LM = lmax(); if (S) S.tNext = S.t + expo(LM); derivados(); infoPicos(); dibujarDemanda(); }
-function actualizarUI() { dibujarTiempos(); dibujarLive(); dibujarTabla(); dibujarGrafica(); relojKV(); dibujarDemanda(); cuello(); }
+function actualizarUI() { if (typeof estadoEsc === 'function' && ESCS.length) estadoEsc(); dibujarTiempos(); dibujarLive(); dibujarTabla(); dibujarGrafica(); relojKV(); dibujarDemanda(); cuello(); }
 
 $('cfg').addEventListener('input', e => {
   const k = e.target.dataset.k, v = parseFloat(e.target.value); if (!k || !isFinite(v)) return;
@@ -1147,8 +1174,87 @@ $('leg').innerHTML = TIPOS.map(t => `<span><i class="sw" style="background:${COL
   '<span>Estela = camino recorrido · línea punteada = camino que le falta · el color en cada lugar indica a quién se atiende y la barra su avance</span>';
 $('open').value = hhmm(P.open); $('close').value = hhmm(P.close); $('ini').value = hhmm(P.open);
 
+// ---------------- Escenarios (presets) ----------------
+const ESC_KEY = 'spe_pacientes_escenarios_v1';
+const clon = o => JSON.parse(JSON.stringify(o));
+const conDef = x => { const b = clon(DEF); for (const k in x) if (k in b) b[k] = (k === 'mix') ? { ...b.mix, ...x.mix } : clon(x[k]); return b; };   // completa campos faltantes
+const BASE_ESC = [
+  { id: 'b1', nombre: 'Operación actual', fijo: true, P: clon(DEF) },
+  { id: 'b2', nombre: 'Más consultorios (6)', fijo: true, P: { ...clon(DEF), nCo: 6 } },
+  { id: 'b3', nombre: 'Consultas más rápidas (12 min)', fijo: true, P: { ...clon(DEF), tCo: 12 } },
+  { id: 'b4', nombre: 'Día de alta demanda', fijo: true, P: { ...clon(DEF), base: 22, picos: [{ ini: 480, fin: 630, extra: 22 }, { ini: 720, fin: 870, extra: 16 }] } },
+];
+let ESCS = [], ESC_ACT = 'b1';
+function leerEsc() { try { const x = JSON.parse(localStorage.getItem(ESC_KEY) || '[]'); return Array.isArray(x) ? x : []; } catch (e) { return []; } }
+function guardarEscLocal() { try { localStorage.setItem(ESC_KEY, JSON.stringify(ESCS.filter(e => !e.fijo))); return true; } catch (e) { avisoEsc('No se pudo guardar en este navegador. Usa Exportar para no perderlo.', true); return false; } }
+function avisoEsc(t, malo) { const a = $('escAviso'); a.textContent = t; a.style.color = malo ? 'var(--bad)' : 'var(--accent)'; clearTimeout(avisoEsc.tm); avisoEsc.tm = setTimeout(() => { a.textContent = ''; }, 4000); }
+const escActual = () => ESCS.find(e => e.id === ESC_ACT);
+function pintarEsc() {
+  const sel = $('selEsc'); sel.innerHTML = '';
+  for (const [grupo, lista] of [['Escenarios de ejemplo', ESCS.filter(e => e.fijo)], ['Mis escenarios', ESCS.filter(e => !e.fijo)]]) {
+    if (!lista.length) continue;
+    const og = document.createElement('optgroup'); og.label = grupo;
+    for (const e of lista) { const o = document.createElement('option'); o.value = e.id; o.textContent = e.nombre; og.appendChild(o); }
+    sel.appendChild(og);
+  }
+  sel.value = ESC_ACT;
+  const e = escActual(); $('escGuardar').disabled = !e || e.fijo; $('escEliminar').disabled = !e || e.fijo;
+  $('escGuardar').title = e && e.fijo ? 'Los escenarios de ejemplo no se modifican: usa "Guardar como nuevo"' : 'Sobrescribe el escenario elegido con los parámetros actuales';
+  estadoEsc();
+}
+function estadoEsc() {
+  const e = escActual(), mod = !e || JSON.stringify(conDef(e.P)) !== JSON.stringify(P), el2 = $('escEstado');
+  el2.className = 'esc-estado ' + (mod ? 'mod' : 'ok'); el2.textContent = mod ? 'Con cambios sin guardar' : 'Sin cambios';
+}
+function aplicarEsc(id) {
+  const e = ESCS.find(x => x.id === id); if (!e) return;
+  ESC_ACT = id; P = conDef(e.P); try { localStorage.setItem(ESC_KEY + '_ultimo', id); } catch (er) {}
+  $('open').value = hhmm(P.open); $('close').value = hhmm(P.close); $('ini').value = hhmm(P.open);
+  LM = lmax(); construirCfg(); construirPicos(); reiniciar(P.open); recalc();
+  pintarEsc(); avisoEsc(`Escenario "${e.nombre}" aplicado. La simulación empezó de nuevo desde las ${hhmm(P.open)}.`);
+}
+$('selEsc').onchange = e => aplicarEsc(e.target.value);
+$('escNuevo').onclick = () => {
+  const nombre = $('escNombre').value.trim() || `Escenario ${ESCS.filter(e => !e.fijo).length + 1}`;
+  const e = { id: 'u' + Date.now().toString(36), nombre, P: clon(P), fecha: new Date().toISOString() };
+  ESCS.push(e); ESC_ACT = e.id; $('escNombre').value = ''; try { localStorage.setItem(ESC_KEY + '_ultimo', e.id); } catch (er) {}
+  if (guardarEscLocal()) avisoEsc(`Guardado como "${nombre}".`);
+  pintarEsc();
+};
+$('escNombre').addEventListener('keydown', e => { if (e.key === 'Enter') $('escNuevo').click(); });
+$('escGuardar').onclick = () => {
+  const e = escActual(); if (!e || e.fijo) return;
+  e.P = clon(P); e.fecha = new Date().toISOString();
+  if (guardarEscLocal()) avisoEsc(`Cambios guardados en "${e.nombre}".`);
+  estadoEsc();
+};
+$('escEliminar').onclick = () => {
+  const e = escActual(); if (!e || e.fijo) return;
+  if (!confirm(`¿Eliminar el escenario "${e.nombre}"?`)) return;
+  ESCS = ESCS.filter(x => x.id !== e.id); ESC_ACT = 'b1'; guardarEscLocal(); pintarEsc(); avisoEsc(`"${e.nombre}" eliminado. Los parámetros actuales no cambiaron.`);
+};
+$('escExportar').onclick = () => {
+  const propios = ESCS.filter(e => !e.fijo), datos = propios.length ? propios : [{ nombre: 'Parámetros actuales', P: clon(P) }];
+  const blob = new Blob([JSON.stringify({ app: 'simulador_pacientes', version: 1, escenarios: datos.map(e => ({ nombre: e.nombre, P: e.P })) }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'escenarios_pacientes.json'; a.click(); URL.revokeObjectURL(a.href);
+  avisoEsc(propios.length ? `${propios.length} escenario(s) exportado(s).` : 'No tienes escenarios propios: se exportaron los parámetros actuales.');
+};
+$('escImportar').onchange = async ev => {
+  const f = ev.target.files[0]; ev.target.value = ''; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text()), lista = Array.isArray(d) ? d : d.escenarios;
+    if (!Array.isArray(lista) || !lista.length) throw new Error('sin escenarios');
+    let n = 0;
+    for (const x of lista) { if (!x || typeof x.P !== 'object') continue; ESCS.push({ id: 'u' + Date.now().toString(36) + n, nombre: String(x.nombre || 'Importado').slice(0, 60), P: conDef(x.P), fecha: new Date().toISOString() }); n++; }
+    if (!n) throw new Error('formato');
+    guardarEscLocal(); pintarEsc(); avisoEsc(`${n} escenario(s) importado(s). Elígelos en la lista para aplicarlos.`);
+  } catch (e) { avisoEsc('Ese archivo no es una exportación de escenarios válida.', true); }
+};
+
 // Arranque
 LM = lmax(); construirReloj(); S = nuevoEstado(P.open); syncCapacidad(); construirCfg(); construirPicos(); reiniciar(P.open);
+ESCS = [...clon(BASE_ESC), ...leerEsc().map(e => ({ ...e, P: conDef(e.P) }))]; pintarEsc();
+{ let u = null; try { u = localStorage.getItem(ESC_KEY + '_ultimo'); } catch (er) {} if (u && u !== 'b1' && ESCS.some(e => e.id === u)) aplicarEsc(u); }   // abre con el último escenario usado
 let last = performance.now(), lastUI = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
