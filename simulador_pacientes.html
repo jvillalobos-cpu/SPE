@@ -8,7 +8,7 @@
   :root {
     --bg: #f2f5f4; --panel: #ffffff; --ink: #17262b; --muted: #64767b; --line: #d5dedc;
     --accent: #0f7b8a; --ok: #2e9e6a; --warn: #d9a12b; --bad: #d64545; --trend: #d9822b;
-    --tC: #e07b28; --tIC: #3b6fd4; --tI: #12a19a; --tA: #8a5cd6; --sxH: #3b6fd4; --sxM: #d65a9a; --agua: #7cc4e8; --orina: #e3b505;
+    --tC: #eb6834; --tIC: #2a78d6; --tI: #1baf7a; --tA: #6250d6; --sxH: #3b6fd4; --sxM: #d65a9a; --agua: #7cc4e8; --orina: #e3b505;
     --zona: #eaf1f0; --floor: #f6f3ee; --floorLine: #ece6dc; --wood: #c9955f; --woodDark: #a6743f;
     --steel: #dfe6ea; --steelDark: #9aa7b0; --plant: #5ea56b; --coat: #f4f7f9; --scrub: #3d6a8a;
   }
@@ -16,7 +16,7 @@
     :root:not([data-theme="light"]) {
       --bg: #101719; --panel: #182226; --ink: #e4eceb; --muted: #8fa3a7; --line: #2a3a3e;
       --accent: #4fc3d1; --ok: #4cc28d; --warn: #e8bb52; --bad: #ef6b6b; --trend: #f0a35a;
-      --tC: #f0954a; --tIC: #6b9cff; --tI: #3cc4bc; --tA: #a888ec; --sxH: #6b9cff; --sxM: #ec85bb; --agua: #7cc4e8; --orina: #e3b505;
+      --tC: #d95926; --tIC: #3987e5; --tI: #199e70; --tA: #9085e9; --sxH: #6b9cff; --sxM: #ec85bb; --agua: #7cc4e8; --orina: #e3b505;
       --zona: #1d2a2e; --floor: #1a2123; --floorLine: #222b2e; --wood: #8a6440; --woodDark: #6b4c2f;
       --steel: #34434a; --steelDark: #56666e; --plant: #4f8f5a; --coat: #c9d3d8; --scrub: #6f9cbc;
     }
@@ -24,7 +24,7 @@
   :root[data-theme="dark"] {
     --bg: #101719; --panel: #182226; --ink: #e4eceb; --muted: #8fa3a7; --line: #2a3a3e;
     --accent: #4fc3d1; --ok: #4cc28d; --warn: #e8bb52; --bad: #ef6b6b; --trend: #f0a35a;
-    --tC: #f0954a; --tIC: #6b9cff; --tI: #3cc4bc; --tA: #a888ec; --sxH: #6b9cff; --sxM: #ec85bb; --agua: #7cc4e8; --orina: #e3b505;
+    --tC: #d95926; --tIC: #3987e5; --tI: #199e70; --tA: #9085e9; --sxH: #6b9cff; --sxM: #ec85bb; --agua: #7cc4e8; --orina: #e3b505;
     --zona: #1d2a2e; --floor: #1a2123; --floorLine: #222b2e; --wood: #8a6440; --woodDark: #6b4c2f;
     --steel: #34434a; --steelDark: #56666e; --plant: #4f8f5a; --coat: #c9d3d8; --scrub: #6f9cbc;
   }
@@ -101,7 +101,25 @@
   .nota { font-size: 12px; color: var(--muted); margin-top: 8px; } .nota b { color: var(--ink); }
 
   /* Zona 4 */
-  #chart { width: 100%; height: 280px; display: block; }
+  #chart { width: 100%; height: 300px; display: block; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chip { border-radius: 99px; padding: 5px 14px; font-size: 13px; background: var(--panel); }
+  .chip.on { background: var(--ink); color: var(--panel); border-color: var(--ink); font-weight: 600; }
+  .chart-title { font-size: 16px; font-weight: 650; margin: 2px 0 6px; }
+  .insight { font-size: 13.5px; line-height: 1.5; color: var(--ink); background: var(--zona); border-left: 3px solid var(--accent); border-radius: 6px; padding: 8px 12px; margin-bottom: 10px; }
+  .chart-wrap { position: relative; }
+  .tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.12); padding: 8px 10px; font-size: 12px; min-width: 150px; z-index: 5; }
+  .tip-t { color: var(--muted); font-size: 11.5px; margin-bottom: 4px; }
+  .tip-r { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
+  .tip-r b { font-size: 13px; font-variant-numeric: tabular-nums; } .tip-r span { color: var(--muted); }
+  .tip-k { display: inline-block; width: 12px; height: 3px; border-radius: 2px; }
+  #cleg { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .ley { display: inline-flex; align-items: center; gap: 6px; background: none; border: 0; padding: 2px 0; font-size: 12px; color: var(--muted); }
+  button.ley { cursor: pointer; } button.ley:hover { color: var(--ink); } .ley.off { opacity: .4; text-decoration: line-through; }
+  .ley-k { display: inline-block; width: 16px; height: 3px; border-radius: 2px; }
+  .ley-k.barra { width: 12px; height: 12px; border-radius: 3px; }
+  .ley-k.punto { width: 9px; height: 9px; border-radius: 50%; }
+  .ley-k.cuadro { border-radius: 2px; } .ley-k.triangulo { clip-path: polygon(50% 0, 100% 100%, 0 100%); border-radius: 0; width: 11px; height: 10px; } .ley-k.rombo { transform: rotate(45deg); border-radius: 1px; width: 8px; height: 8px; }
 
   @media (max-width: 1000px) { .top { grid-template-columns: 1fr; } .live { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 560px) { .live { grid-template-columns: repeat(2, 1fr); } }
@@ -177,20 +195,13 @@
 
 <!-- ================= ZONA 4: gráficas ================= -->
 <section class="panel">
-  <h2>Gráficas
-    <select id="selChart">
-      <option value="tiempos">Tiempo total por paciente y tendencia</option>
-      <option value="colas">Pacientes en cola por etapa</option>
-      <option value="poisson">Llegadas por ventana: simulado vs Poisson</option>
-      <option value="expo">Tiempo entre llegadas: exponencial</option>
-      <option value="campana">Campana: distribución del tiempo total</option>
-      <option value="dispersion">Dispersión: pacientes en el hospital al llegar vs tiempo total</option>
-      <option value="etapas">Tiempos por etapa (promedio por variante de visita)</option>
-    </select>
-  </h2>
-  <svg id="chart"></svg>
-  <div class="leg" id="cleg"></div>
-  <div class="row blk">Ventana <input type="number" id="win" value="15" min="1" max="240" step="5"> min · Pacientes k <input type="number" id="kIn" value="5" min="0" max="200"> <span id="pois" class="sm muted"></span></div>
+  <h2>Gráficas</h2>
+  <div class="chips" id="chips" role="tablist" aria-label="Elige una gráfica"></div>
+  <div class="chart-title" id="cTitle"></div>
+  <div class="insight" id="cInsight"></div>
+  <div class="chart-wrap" id="chartWrap"><svg id="chart" role="img" aria-label="Gráfica"></svg><div class="tip" id="tip" hidden></div></div>
+  <div id="cleg"></div>
+  <div class="row blk" id="poisRow">Calcular probabilidad · intervalo de <input type="number" id="win" value="15" min="5" max="240" step="5"> min · que lleguen <input type="number" id="kIn" value="5" min="0" max="200"> pacientes <span id="pois" class="sm muted"></span></div>
 </section>
 </div>
 
@@ -842,100 +853,247 @@ function dibujarTabla() {
 }
 
 // ---------------- Zona 4: gráficas ----------------
+// Diseño: una pregunta por gráfica, una frase que la responde, trazos finos, cuadrícula tenue y tooltip al pasar el cursor.
 function pmf(k, mu) { if (mu <= 0) return k === 0 ? 1 : 0; let l = -mu + k * Math.log(mu); for (let i = 2; i <= k; i++) l -= Math.log(i); return Math.exp(l); }
 function muV(a, b) { let s = 0; for (let m = a; m < b; m += 1) s += lam(m) / 60; return s; }
+const GRAFICAS = [
+  { k: 'tiempos', n: 'Tiempo de visita', q: '¿Cuánto tarda un paciente desde que entra hasta que sale, según la hora?' },
+  { k: 'colas', n: 'Filas por etapa', q: '¿En qué etapa se está juntando la gente?' },
+  { k: 'etapas', n: '¿En qué se va el tiempo?', q: 'Tiempo promedio de cada visita, separado en esperar y ser atendido' },
+  { k: 'campana', n: 'Cuánto tarda la mayoría', q: '¿Cuántos pacientes tardan cada cantidad de minutos?' },
+  { k: 'dispersion', n: 'Más gente, más espera', q: '¿Tardan más los pacientes que llegan cuando el hospital está lleno?' },
+  { k: 'poisson', n: 'Llegadas: real vs esperado', q: '¿Llegaron los pacientes que esperábamos en cada intervalo de tiempo?' },
+  { k: 'expo', n: 'Cada cuánto llega alguien', q: '¿Cuántos minutos pasan entre la llegada de un paciente y el siguiente?' },
+];
+const ETAPA_COL = { rec: 'var(--tIC)', ad: 'var(--tA)', ib: 'var(--tI)', co: 'var(--tC)' };
+const FORMA = { IC: 'circulo', C: 'cuadro', I: 'triangulo', A: 'rombo' };   // forma por tipo: el color no es la única pista
+let MODO = 'tiempos', HOVER = null, CH = null;
+const OCULTAS = new Set();
+const niceStep = v => { const p = 10 ** Math.floor(Math.log10(v || 1)), r = v / p; return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * p; };
+const niceMax = (v, n = 4) => { const st = niceStep(Math.max(v, 1e-9) / n); return { max: Math.max(st, Math.ceil(v / st) * st), step: st }; };
+const fmtN = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
+function barraRedonda(x, y, w, h, r = 4, dir = 'arriba') {   // extremo de datos redondeado, base recta
+  r = Math.max(0, Math.min(r, w / 2, h));
+  if (dir === 'arriba') return `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z`;
+  return `M${x},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h - r} Q${x + w},${y + h} ${x + w - r},${y + h} H${x} Z`;   // hacia la derecha
+}
+function marca(svg, forma, x, y, r, color, extra = {}) {
+  const base = { fill: color, stroke: 'var(--panel)', 'stroke-width': 1.5, ...extra };
+  if (forma === 'cuadro') return el('rect', { x: x - r * 0.9, y: y - r * 0.9, width: r * 1.8, height: r * 1.8, rx: 1.5, ...base }, svg);
+  if (forma === 'triangulo') return el('path', { d: `M${x},${y - r * 1.15} L${x + r * 1.1},${y + r * 0.85} L${x - r * 1.1},${y + r * 0.85} Z`, ...base }, svg);
+  if (forma === 'rombo') return el('path', { d: `M${x},${y - r * 1.2} L${x + r * 1.2},${y} L${x},${y + r * 1.2} L${x - r * 1.2},${y} Z`, ...base }, svg);
+  return el('circle', { cx: x, cy: y, r, ...base }, svg);
+}
+// Tooltip: el valor manda (fuerte), la etiqueta acompaña; siempre con textContent
+function tooltip(px, py, titulo, filas) {
+  const t = $('tip'); t.innerHTML = '';
+  const h = document.createElement('div'); h.className = 'tip-t'; h.textContent = titulo; t.appendChild(h);
+  for (const f of filas) {
+    const r = document.createElement('div'); r.className = 'tip-r';
+    if (f.c) { const k = document.createElement('i'); k.className = 'tip-k'; k.style.background = f.c; r.appendChild(k); }
+    const v = document.createElement('b'); v.textContent = f.v; r.appendChild(v);
+    const l = document.createElement('span'); l.textContent = f.l; r.appendChild(l);
+    t.appendChild(r);
+  }
+  t.hidden = false;
+  const wrap = $('chartWrap').getBoundingClientRect(), svgR = $('chart').getBoundingClientRect(), esc = svgR.width / CH.W;
+  let left = px * esc + 14, top = py * esc - 10;
+  if (left + t.offsetWidth > wrap.width - 4) left = px * esc - t.offsetWidth - 14;
+  t.style.left = Math.max(4, left) + 'px'; t.style.top = Math.max(4, Math.min(top, wrap.height - t.offsetHeight - 4)) + 'px';
+}
+const ocultarTip = () => { $('tip').hidden = true; };
+function construirChips() {
+  $('chips').innerHTML = '';
+  for (const g of GRAFICAS) {
+    const b = document.createElement('button'); b.className = 'chip' + (g.k === MODO ? ' on' : ''); b.textContent = g.n; b.dataset.k = g.k;
+    b.onclick = () => { MODO = g.k; HOVER = null; ocultarTip(); construirChips(); dibujarGrafica(); };
+    $('chips').appendChild(b);
+  }
+}
+function leyenda(items, toggle) {
+  const c = $('cleg'); c.innerHTML = '';
+  for (const it of items) {
+    const s = document.createElement(toggle ? 'button' : 'span'); s.className = 'ley' + (toggle && OCULTAS.has(it.k) ? ' off' : '');
+    const k = document.createElement('i'); k.className = 'ley-k ' + (it.tipo || 'linea'); k.style.background = it.c; if (it.op) k.style.opacity = it.op; s.appendChild(k);
+    s.appendChild(document.createTextNode(it.n));
+    if (toggle) { s.title = 'Clic para mostrar u ocultar'; s.onclick = () => { OCULTAS.has(it.k) ? OCULTAS.delete(it.k) : OCULTAS.add(it.k); dibujarGrafica(); }; }
+    c.appendChild(s);
+  }
+}
 function dibujarGrafica() {
-  const svg = $('chart'), W = svg.clientWidth || 900, modo = $('selChart').value, H = modo === 'etapas' ? 330 : 280, Pd = { l: 44, r: 14, t: 14, b: 28 };
+  const svg = $('chart'), W = svg.clientWidth || 900, H = MODO === 'etapas' ? 340 : 300, Pd = { l: 52, r: 28, t: 22, b: 36 };
   svg.style.height = H + 'px'; svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
-  const w = Math.max(1, +$('win').value || 15), kk = Math.max(0, Math.round(+$('kIn').value || 0)), muNow = lam(S.t) * w / 60;
-  let lo = 0; for (let i = 0; i < kk; i++) lo += pmf(i, muNow);
-  $('pois').innerHTML = `Con λ ahora = ${lam(S.t).toFixed(1)} pac/h, en ${w} min se esperan μ = ${muNow.toFixed(2)} llegadas. P(X = ${kk}) = ${(pmf(kk, muNow) * 100).toFixed(1)}% · P(X ≥ ${kk}) = ${((1 - lo) * 100).toFixed(1)}%`;
-  const sinDatos = () => { $('cleg').innerHTML = '<span>Todavía no hay datos suficientes: deja correr la simulación</span>'; };
-  const gridY = (yMax, Y, dec = 0) => { for (let i = 0; i <= 5; i++) { const v = yMax * i / 5; el('line', { x1: Pd.l, x2: W - Pd.r, y1: Y(v), y2: Y(v), stroke: 'var(--line)' }, svg); txt(svg, v.toFixed(dec), Pd.l - 6, Y(v) + 4, 11, 'var(--muted)', 'end'); } };
-  const linea = (pts, c, sw = 2, dash) => { if (pts.length < 2) return; el('polyline', { points: pts.map(p => p.map(v => (+v).toFixed(1)).join(',')).join(' '), fill: 'none', stroke: c, 'stroke-width': sw, ...(dash ? { 'stroke-dasharray': dash } : {}) }, svg); };
+  const g0 = GRAFICAS.find(g => g.k === MODO); $('cTitle').textContent = g0.q;
+  $('poisRow').style.display = MODO === 'poisson' ? '' : 'none';
+  CH = { W, H, hover: null };
+  const decir = t => { $('cInsight').innerHTML = t; };
+  const sinDatos = () => { decir('Todavía no hay suficientes pacientes para esta gráfica. Deja correr la simulación unos minutos.'); leyenda([]); txt(svg, 'Esperando datos de la simulación…', W / 2, H / 2, 13, 'var(--muted)', 'middle'); };
+  const rejillaY = (max, step, Y, unidad) => {
+    for (let v = 0; v <= max + 1e-9; v += step) { el('line', { x1: Pd.l, x2: W - Pd.r, y1: Y(v), y2: Y(v), stroke: 'var(--line)', 'stroke-width': 1 }, svg); txt(svg, fmtN(+v.toFixed(2)), Pd.l - 8, Y(v) + 4, 11, 'var(--muted)', 'end'); }
+    txt(svg, unidad, Pd.l - 30, Pd.t - 10, 11, 'var(--muted)', 'start', 600);
+  };
   const ejeHoras = () => {
     const x0 = Math.min(P.open, S.t0), x1 = Math.max(P.close, S.t, x0 + 60), X = m => Pd.l + (m - x0) / (x1 - x0) * (W - Pd.l - Pd.r);
-    for (let m = Math.ceil(x0 / 60) * 60; m <= x1; m += 60) txt(svg, hhmm(m), X(m), H - 8, 11, 'var(--muted)', 'middle');
-    el('line', { x1: X(S.t), x2: X(S.t), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--muted)', 'stroke-dasharray': '3 3' }, svg);
-    return X;
+    const paso = (x1 - x0) / 60 > 12 ? 120 : 60;
+    for (let m = Math.ceil(x0 / paso) * paso; m <= x1; m += paso) txt(svg, hhmm(m), X(m), H - 12, 11, 'var(--muted)', 'middle');
+    el('line', { x1: X(S.t), x2: X(S.t), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--muted)', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, svg);
+    txt(svg, 'ahora', X(S.t) + 4, Pd.t + 10, 10, 'var(--muted)');
+    return { X, x0, x1, Xi: x => x0 + (x - Pd.l) / (W - Pd.l - Pd.r) * (x1 - x0) };
   };
-  const histo = (bars, curve, xmax, ymax, xlab, colr, dec = ymax < 10 ? 1 : 0) => {
-    const X = v => Pd.l + v / xmax * (W - Pd.l - Pd.r), Y = v => H - Pd.b - v / ymax * (H - Pd.t - Pd.b);
-    gridY(ymax, Y, dec);
-    for (const b of bars) { el('rect', { x: X(b.x0) + 1, y: Y(b.v), width: Math.max(1, X(b.x1) - X(b.x0) - 2), height: Y(0) - Y(b.v), fill: colr, 'fill-opacity': 0.55 }, svg); if (b.l !== undefined) txt(svg, b.l, (X(b.x0) + X(b.x1)) / 2, H - 10, 11, 'var(--muted)', 'middle'); }
-    linea(curve.map(p => [X(p[0]), Y(p[1])]), 'var(--trend)', 2.5);
-    txt(svg, xlab, W - Pd.r, Pd.t + 8, 10, 'var(--muted)', 'end');
-    return { X, Y };
-  };
-  let ley = [];
-  if (modo === 'tiempos') {
-    const d = S.done; if (d.length < 2) return sinDatos();
-    const X = ejeHoras(), yMax = Math.ceil(Math.max(...VAR.map(metaVar), ...d.map(ciclo)) * 1.1 / 10) * 10, Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
-    gridY(yMax, Y); txt(svg, 'min', Pd.l, Pd.t - 3, 10, 'var(--muted)');
-    for (const tp of TIPOS) el('line', { x1: Pd.l, x2: W - Pd.r, y1: Y(P.meta[tp.k]), y2: Y(P.meta[tp.k]), stroke: COLOR[tp.k], 'stroke-dasharray': '6 4', 'stroke-opacity': 0.6 }, svg);
-    const st = Math.max(1, Math.floor(d.length / 800));
-    for (let i = 0; i < d.length; i += st) el('circle', { cx: X(d[i].tF), cy: Y(ciclo(d[i])), r: d[i].ad && d[i].k !== 'A' ? 3.4 : 2.6, fill: COLOR[d[i].k], 'fill-opacity': 0.75, ...(d[i].ad && d[i].k !== 'A' ? { stroke: 'var(--tA)', 'stroke-width': 1.5 } : {}) }, svg);
-    const ma = []; let acc = 0; d.forEach((p, i) => { acc += ciclo(p); if (i >= 20) acc -= ciclo(d[i - 20]); ma.push([X(p.tF), Y(acc / Math.min(i + 1, 20))]); });
-    linea(ma, 'var(--ink)');
-    const reg = Stats.linreg(d.map(p => p.tF / 60), d.map(ciclo));
-    if (reg) linea([[X(d[0].tF), Y(Math.max(0, reg.f(d[0].tF / 60)))], [X(S.t), Y(Math.max(0, reg.f(S.t / 60)))]], 'var(--trend)', 2.5);
-    ley = ['<span>Punto = paciente (color = tipo de visita; borde morado = pasó al baño)</span>', '<span><i class="sw" style="background:var(--ink)"></i>Media móvil (20 pacientes)</span>',
-      `<span><i class="sw" style="background:var(--trend)"></i>Tendencia lineal${reg ? `: ${reg.b >= 0 ? '+' : ''}${reg.b.toFixed(2)} min por hora · R² ${reg.r2.toFixed(2)}` : ''}</span>`, '<span>--- metas por tipo</span>'];
-  } else if (modo === 'colas') {
-    const sr = S.serie, X = ejeHoras(), ks = ['rec', 'ad', 'ib', 'co', 'hid', 'sis'], yMax = Math.ceil(Math.max(5, ...sr.map(s => Math.max(...ks.map(k => s[k])))) / 5) * 5, Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
-    gridY(yMax, Y); const st = Math.max(1, Math.floor(sr.length / 600)), ser = k => sr.filter((_, i) => i % st === 0).map(s => [X(s.t), Y(s[k])]);
-    const L = [['sis', 'var(--muted)', 'Pacientes en el hospital', '4 3'], ['rec', 'var(--accent)', 'Cola de recepción'], ['ad', 'var(--tA)', 'Cola del baño'], ['hid', 'var(--agua)', 'Hidratándose'], ['ib', 'var(--tI)', 'Cola de InBody'], ['co', 'var(--tC)', 'Cola de consultorios']];
-    L.forEach(([k, c, , dash]) => linea(ser(k), c, dash ? 1.5 : 2, dash));
-    ley = L.map(([, c, n]) => `<span><i class="sw" style="background:${c}"></i>${n}</span>`);
-  } else if (modo === 'poisson') {
-    const a0 = Math.ceil(Math.max(P.open, S.t0) / w) * w, a1 = Math.min(P.close, S.t), o = [], mus = [];
-    for (let s = a0; s + w <= a1; s += w) { let c = 0; for (const x of S.arrT) if (x >= s && x < s + w) c++; o.push(c); mus.push(muV(s, s + w)); }
-    if (o.length < 2) return sinDatos();
-    const mx = Math.max(...mus), K = Math.max(...o, Math.ceil(mx + 4 * Math.sqrt(mx)) + 1), ex = Array.from({ length: K + 1 }, (_, k) => mus.reduce((a, u) => a + pmf(k, u), 0)), cnt = Array(K + 1).fill(0); o.forEach(c => cnt[c]++);
-    histo(cnt.map((v, k) => ({ x0: k, x1: k + 1, v, l: K > 30 && k % 5 ? undefined : k })), ex.map((v, k) => [k + 0.5, v]), K + 1, Math.ceil(Math.max(...cnt, ...ex) * 1.15 / 2) * 2 || 2, 'llegadas por ventana', 'var(--tIC)');
-    const mo = o.reduce((a, v) => a + v, 0) / o.length, me = mus.reduce((a, v) => a + v, 0) / mus.length;
-    ley = [`<span><i class="sw" style="background:var(--tIC)"></i>Ventanas observadas (n = ${o.length}, de ${w} min)</span>`, '<span><i class="sw" style="background:var(--trend)"></i>Frecuencia esperada con Poisson, μ = λ(t) × ventana</span>', `<span>Promedio por ventana: simulado ${mo.toFixed(2)} · esperado ${me.toFixed(2)}</span>`];
-  } else if (modo === 'expo' || modo === 'campana') {
-    const d = modo === 'expo' ? S.arrT.slice(1).map((t, i) => t - S.arrT[i]) : S.done.map(ciclo);
-    if (d.length < 8) return sinDatos();
-    const n = d.length, me = d.reduce((a, v) => a + v, 0) / n, sd = Math.sqrt(d.reduce((a, v) => a + (v - me) ** 2, 0) / (n - 1));
-    const xm = Math.max(Stats.pct(d, 0.99) * 1.1, modo === 'expo' ? me * 3 : me + 3 * sd, 1), nb = Math.max(8, Math.min(30, Math.round(Math.sqrt(n) * 1.5))), bw = xm / nb, cnt = Array(nb).fill(0);
-    d.forEach(v => cnt[Math.min(nb - 1, Math.floor(v / bw))]++);
-    const f = modo === 'expo' ? x => n * bw * Math.exp(-x / me) / me : x => n * bw * Math.exp(-((x - me) ** 2) / (2 * sd * sd)) / (sd * Math.sqrt(2 * Math.PI));
-    const cv = []; for (let i = 0; i <= 120; i++) cv.push([xm * i / 120, f(xm * i / 120)]);
-    const { X } = histo(cnt.map((v, i) => ({ x0: i * bw, x1: (i + 1) * bw, v, l: i % 3 ? undefined : (i * bw).toFixed(xm < 10 ? 1 : 0) })), cv, xm, Math.ceil(Math.max(...cnt, ...cv.map(c => c[1])) * 1.15 / 2) * 2 || 2, modo === 'expo' ? 'minutos entre llegadas' : 'tiempo de ciclo (min)', modo === 'expo' ? 'var(--tI)' : 'var(--tIC)');
-    el('line', { x1: X(me), x2: X(me), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--ink)', 'stroke-dasharray': '4 3' }, svg); txt(svg, 'μ', X(me) + 4, Pd.t + 10, 11);
-    if (modo === 'expo') ley = [`<span><i class="sw" style="background:var(--tI)"></i>Tiempo entre llegadas (n = ${n})</span>`, `<span><i class="sw" style="background:var(--trend)"></i>Exponencial con λ = ${(60 / me).toFixed(1)} pacientes/h</span>`, `<span>CV = ${(sd / me).toFixed(2)} (1 = Poisson puro; más de 1 indica que λ cambia durante el día)</span>`];
-    else {
-      for (const s of [-1, 1]) { const xv = me + s * sd; if (xv > 0 && xv < xm) { el('line', { x1: X(xv), x2: X(xv), y1: Pd.t + 14, y2: H - Pd.b, stroke: 'var(--muted)', 'stroke-dasharray': '2 3' }, svg); txt(svg, s < 0 ? 'μ−σ' : 'μ+σ', X(xv) + 4, Pd.t + 24, 10, 'var(--muted)'); } }
-      ley = [`<span><i class="sw" style="background:var(--tIC)"></i>Tiempo de ciclo observado (n = ${n})</span>`, `<span><i class="sw" style="background:var(--trend)"></i>Normal(μ = ${me.toFixed(1)}, σ = ${sd.toFixed(1)}) min</span>`,
-        `<span>Dentro de μ ± σ: ${pc(d.filter(v => Math.abs(v - me) <= sd).length / n)} (normal ideal ≈ 68%) · P90 = ${f1(Stats.pct(d, 0.9))} min</span>`];
+  const linea = (pts, c, sw = 2, extra = {}) => { if (pts.length < 2) return; el('polyline', { points: pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), fill: 'none', stroke: c, 'stroke-width': sw, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', ...extra }, svg); };
+  const area = (pts, base, c) => { if (pts.length < 2) return; el('polygon', { points: [[pts[0][0], base], ...pts, [pts[pts.length - 1][0], base]].map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' '), fill: c, 'fill-opacity': 0.1 }, svg); };
+  const capa = el('g', {}, svg);   // capa de resaltado del hover
+
+  if (MODO === 'tiempos') {
+    const d = S.done; if (d.length < 3) return sinDatos();
+    const { X } = ejeHoras(), slots = [];
+    for (let m = Math.floor(Math.min(P.open, S.t0) / 30) * 30; m < Math.max(P.close, S.t); m += 30) {
+      const ps = d.filter(p => p.tF >= m && p.tF < m + 30); if (ps.length) slots.push({ m, n: ps.length, prom: ps.reduce((a, p) => a + ciclo(p), 0) / ps.length, max: Math.max(...ps.map(ciclo)), ps });
     }
-  } else if (modo === 'dispersion') {
-    const d = S.done; if (d.length < 5) return sinDatos();
-    const xmax = Math.max(5, ...d.map(p => p.carga)) * 1.1, yMax = Math.ceil(Math.max(...d.map(ciclo)) * 1.1 / 10) * 10;
-    const X = v => Pd.l + v / xmax * (W - Pd.l - Pd.r), Y = v => H - Pd.b - v / yMax * (H - Pd.t - Pd.b);
-    gridY(yMax, Y); const stp = Math.max(1, Math.ceil(xmax / 10)); for (let v = 0; v <= xmax; v += stp) txt(svg, v, X(v), H - 8, 11, 'var(--muted)', 'middle');
-    txt(svg, 'pacientes en el hospital al llegar', W - Pd.r, H - 22, 10, 'var(--muted)', 'end');
-    for (const p of d) el('circle', { cx: X(p.carga), cy: Y(ciclo(p)), r: 2.6, fill: COLOR[p.k], 'fill-opacity': 0.65 }, svg);
-    const reg = Stats.linreg(d.map(p => p.carga), d.map(ciclo));
-    if (reg) linea([[X(0), Y(Math.max(0, reg.f(0)))], [X(xmax), Y(Math.min(yMax, reg.f(xmax)))]], 'var(--trend)', 2.5);
-    ley = ['<span>Punto = paciente (color = tipo de visita)</span>', `<span><i class="sw" style="background:var(--trend)"></i>Regresión${reg ? `: tiempo ≈ ${reg.a.toFixed(1)} + ${reg.b.toFixed(2)} × pacientes · R² = ${reg.r2.toFixed(2)}` : ''}</span>`, '<span>Cada paciente extra en el hospital al llegar agrega "b" minutos a su tiempo de ciclo</span>'];
-  } else {
-    const tramos = [['Espera recepción', p => wk(p, 'rec'), 'var(--muted)'], ['Recepción', p => sk(p, 'rec'), 'var(--accent)'], ['Espera baño', p => wk(p, 'ad'), 'var(--warn)'], ['Baño', p => sk(p, 'ad'), 'var(--tA)'],
-      ['Hidratación', p => p.hidT, 'var(--agua)'], ['Espera InBody', p => wk(p, 'ib'), '#c9a227'], ['InBody', p => sk(p, 'ib'), 'var(--tI)'], ['Espera consulta', p => wk(p, 'co'), 'var(--bad)'], ['Consulta', p => sk(p, 'co'), 'var(--tC)']];
-    const datos = VAR.map(v => { const d = S.done.filter(p => p.v === v.v), pr = tramos.map(([, f]) => d.length ? d.reduce((a, p) => a + f(p), 0) / d.length : 0); return { n: v.n, d: d.length, pr, tot: pr.reduce((a, b) => a + b, 0) }; });
-    const L = 220, xmax = Math.ceil(Math.max(...VAR.map(metaVar), ...datos.map(x => x.tot)) * 1.1 / 5) * 5, XX = v => L + v / xmax * (W - L - Pd.r), bh = (H - Pd.t - Pd.b) / datos.length;
-    for (let v = 0; v <= xmax; v += xmax > 60 ? 10 : 5) { el('line', { x1: XX(v), x2: XX(v), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--line)' }, svg); txt(svg, v, XX(v), H - 8, 11, 'var(--muted)', 'middle'); }
+    const { max, step } = niceMax(Math.max(...d.map(ciclo)) * 1.05), Y = v => H - Pd.b - v / max * (H - Pd.t - Pd.b);
+    rejillaY(max, step, Y, 'minutos');
+    for (const p of d) marca(svg, FORMA[p.k], X(p.tF), Y(ciclo(p)), 3, COLOR[p.k], { 'fill-opacity': 0.35, stroke: 'none' });
+    const pts = slots.map(s => [X(s.m + 15), Y(s.prom)]);
+    area(pts, Y(0), 'var(--ink)'); linea(pts, 'var(--ink)', 2.5);
+    pts.forEach(p => el('circle', { cx: p[0], cy: p[1], r: 4, fill: 'var(--ink)', stroke: 'var(--panel)', 'stroke-width': 2 }, svg));
+    const reg = Stats.linreg(d.map(p => p.tF / 60), d.map(ciclo));
+    if (reg) linea([[X(d[0].tF), Y(Math.max(0, reg.f(d[0].tF / 60)))], [X(S.t), Y(Math.max(0, reg.f(S.t / 60)))]], 'var(--trend)', 2, { 'stroke-dasharray': '6 4' });
+    const ult = slots[slots.length - 1], prom = d.reduce((a, p) => a + ciclo(p), 0) / d.length;
+    const tend = reg ? (Math.abs(reg.b) < 0.5 ? 'se mantiene estable' : reg.b > 0 ? `va subiendo unos <b>${reg.b.toFixed(1)} min por cada hora</b>` : `va bajando unos <b>${(-reg.b).toFixed(1)} min por cada hora</b>`) : '';
+    decir(`Hoy un paciente tarda en promedio <b>${prom.toFixed(0)} min</b> desde que entra hasta que sale. En la última media hora con salidas (${hhmm(ult.m)}–${hhmm(ult.m + 30)}) fueron <b>${ult.prom.toFixed(0)} min</b>. A lo largo del día el tiempo ${tend}.`);
+    leyenda([{ n: 'Promedio por media hora', c: 'var(--ink)' }, { n: 'Tendencia del día', c: 'var(--trend)' }, ...TIPOS.map(t => ({ n: t.n, c: COLOR[t.k], tipo: 'punto ' + FORMA[t.k], op: 0.6 }))]);
+    CH.hover = (x) => {
+      if (!slots.length) return;
+      const s = slots.reduce((a, b) => Math.abs(X(b.m + 15) - x) < Math.abs(X(a.m + 15) - x) ? b : a), cx = X(s.m + 15);
+      capa.innerHTML = ''; el('line', { x1: cx, x2: cx, y1: Pd.t, y2: H - Pd.b, stroke: 'var(--ink)', 'stroke-width': 1, 'stroke-opacity': 0.4 }, capa);
+      el('circle', { cx, cy: Y(s.prom), r: 6, fill: 'var(--ink)', stroke: 'var(--panel)', 'stroke-width': 2 }, capa);
+      tooltip(cx, Y(s.prom), `Salieron entre ${hhmm(s.m)} y ${hhmm(s.m + 30)}`, [{ v: `${s.prom.toFixed(1)} min`, l: 'promedio', c: 'var(--ink)' }, { v: String(s.n), l: s.n === 1 ? 'paciente' : 'pacientes' }, { v: `${s.max.toFixed(1)} min`, l: 'el que más tardó' }]);
+    };
+  } else if (MODO === 'colas') {
+    const sr = S.serie; if (sr.length < 3) return sinDatos();
+    const { X } = ejeHoras(), ser = ETA.map(e => ({ k: e.k, n: e.k === 'ad' ? 'Baño (incluye hidratación)' : e.n, c: ETAPA_COL[e.k], f: s => s[e.k] + (e.k === 'ad' ? s.hid : 0) }));
+    const vis = ser.filter(s => !OCULTAS.has(s.k)), st = Math.max(1, Math.floor(sr.length / 500)), datos = sr.filter((_, i) => i % st === 0 || i === sr.length - 1);
+    const { max, step } = niceMax(Math.max(4, ...datos.flatMap(r => vis.map(s => s.f(r))))), Y = v => H - Pd.b - v / max * (H - Pd.t - Pd.b);
+    rejillaY(max, step, Y, 'personas esperando');
+    for (const s of vis) { const pts = datos.map(r => [X(r.t), Y(s.f(r))]); area(pts, Y(0), s.c); linea(pts, s.c, 2); const u = pts[pts.length - 1]; el('circle', { cx: u[0], cy: u[1], r: 4, fill: s.c, stroke: 'var(--panel)', 'stroke-width': 2 }, svg); }
+    const ahora = sr[sr.length - 1], peor = ser.reduce((a, b) => b.f(ahora) > a.f(ahora) ? b : a), maxDia = ser.map(s => { const r = sr.reduce((a, b) => s.f(b) > s.f(a) ? b : a); return { s, v: s.f(r), t: r.t }; }).reduce((a, b) => b.v > a.v ? b : a);
+    decir(peor.f(ahora) === 0 ? `Ahora mismo <b>no hay nadie esperando</b>. ${maxDia.v ? `La fila más larga del día fue en <b>${maxDia.s.n}</b>: ${maxDia.v} personas a las ${hhmm(maxDia.t)}.` : ''}`
+      : `Ahora mismo la fila más larga está en <b>${peor.n}</b> con <b>${peor.f(ahora)} ${peor.f(ahora) === 1 ? 'persona' : 'personas'}</b>. La más larga del día fue en ${maxDia.s.n}: ${maxDia.v} personas a las ${hhmm(maxDia.t)}. Haz clic en la leyenda para mostrar u ocultar etapas.`);
+    leyenda(ser.map(s => ({ k: s.k, n: s.n, c: s.c })), true);
+    CH.hover = (x) => {
+      const r = datos.reduce((a, b) => Math.abs(X(b.t) - x) < Math.abs(X(a.t) - x) ? b : a), cx = X(r.t);
+      capa.innerHTML = ''; el('line', { x1: cx, x2: cx, y1: Pd.t, y2: H - Pd.b, stroke: 'var(--ink)', 'stroke-width': 1, 'stroke-opacity': 0.4 }, capa);
+      for (const s of vis) el('circle', { cx, cy: Y(s.f(r)), r: 4.5, fill: s.c, stroke: 'var(--panel)', 'stroke-width': 2 }, capa);
+      tooltip(cx, Y(Math.max(...vis.map(s => s.f(r)), 0)), `A las ${hhmm(r.t)}`, [...vis.map(s => ({ v: String(s.f(r)), l: s.n, c: s.c })), { v: String(r.sis), l: 'en el hospital en total' }]);
+    };
+  } else if (MODO === 'etapas') {
+    const datos = VAR.map(v => {
+      const d = S.done.filter(p => p.v === v.v); if (!d.length) return null;
+      const av = f => d.reduce((a, p) => a + f(p), 0) / d.length;
+      const seg = ETA.filter(e => d.some(p => usa(p, e.k))).flatMap(e => [
+        { e, tipo: 'espera', v: av(p => wk(p, e.k) + (e.k === 'ad' ? p.hidT : 0)) }, { e, tipo: 'atencion', v: av(p => sk(p, e.k)) }]).filter(s => s.v > 0.05);
+      return { v, n: d.length, seg, tot: seg.reduce((a, s) => a + s.v, 0), esp: seg.filter(s => s.tipo === 'espera').reduce((a, s) => a + s.v, 0) };
+    }).filter(Boolean);
+    if (!datos.length) return sinDatos();
+    const L = Math.min(230, W * 0.3), { max, step } = niceMax(Math.max(...datos.map(x => x.tot)) * 1.18), XX = v => L + v / max * (W - L - Pd.r);
+    const band = (H - Pd.t - Pd.b) / datos.length, bh = Math.min(24, band * 0.6);
+    for (let v = 0; v <= max + 1e-9; v += step) { el('line', { x1: XX(v), x2: XX(v), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--line)' }, svg); txt(svg, fmtN(v), XX(v), H - 12, 11, 'var(--muted)', 'middle'); }
+    txt(svg, 'minutos →', L - 10, H - 12, 11, 'var(--muted)', 'end', 600);
+    const hits = [];
     datos.forEach((x, i) => {
-      const y = Pd.t + i * bh + bh * 0.2, h = bh * 0.6; let acc = 0;
-      txt(svg, `${x.n} (${x.d})`, L - 8, y + h / 2 + 4, 11, 'var(--ink)', 'end');
-      x.pr.forEach((v, j) => { if (v > 0) el('rect', { x: XX(acc), y, width: XX(acc + v) - XX(acc), height: h, fill: tramos[j][2], 'fill-opacity': 0.85 }, svg); acc += v; });
-      if (x.d) txt(svg, x.tot.toFixed(1) + ' min', XX(x.tot) + 4, y + h / 2 + 4, 11, 'var(--muted)');
+      const yc = Pd.t + band * (i + 0.5), y = yc - bh / 2; let acc = 0;
+      txt(svg, x.v.n, L - 10, yc - 1, 12, 'var(--ink)', 'end', 600); txt(svg, `${x.n} pacientes`, L - 10, yc + 12, 10.5, 'var(--muted)', 'end');
+      x.seg.forEach((s, j) => {
+        const x0 = XX(acc) + (j ? 1 : 0), w = Math.max(1, XX(acc + s.v) - XX(acc) - (j ? 1 : 0) - (j < x.seg.length - 1 ? 1 : 0)), ult = j === x.seg.length - 1;
+        const node = el('path', { d: ult ? barraRedonda(x0, y, w, bh, 4, 'derecha') : `M${x0},${y} h${w} v${bh} h${-w} Z`, fill: ETAPA_COL[s.e.k], 'fill-opacity': s.tipo === 'espera' ? 0.35 : 1 }, svg);
+        hits.push({ x0, x1: x0 + w, y0: y - 3, y1: y + bh + 3, s, x, node }); acc += s.v;
+      });
+      txt(svg, `${x.tot.toFixed(0)} min`, XX(x.tot) + 8, yc - 1, 12, 'var(--ink)', 'start', 700);
+      txt(svg, `${Math.round(x.esp / x.tot * 100)}% esperando`, XX(x.tot) + 8, yc + 12, 10.5, 'var(--muted)');
     });
-    ley = tramos.map(([n, , c]) => `<span><i class="sw" style="background:${c}"></i>${n}</span>`);
+    const tot = datos.reduce((a, x) => a + x.tot * x.n, 0), esp = datos.reduce((a, x) => a + x.esp * x.n, 0);
+    const porEtapa = ETA.map(e => ({ e, v: S.done.filter(p => usa(p, e.k)).reduce((a, p) => a + wk(p, e.k) + (e.k === 'ad' ? p.hidT : 0), 0) / Math.max(1, S.done.filter(p => usa(p, e.k)).length) })).reduce((a, b) => b.v > a.v ? b : a);
+    decir(`De todo el tiempo que los pacientes pasan en el hospital, <b>${Math.round(esp / tot * 100)}% es esperar</b> y ${Math.round((1 - esp / tot) * 100)}% es ser atendido. Donde más se espera es en <b>${porEtapa.e.n}</b> (${porEtapa.v.toFixed(1)} min en promedio).`);
+    leyenda([...ETA.map(e => ({ n: e.n, c: ETAPA_COL[e.k], tipo: 'barra' })), { n: 'Tono claro = esperando · tono fuerte = siendo atendido', c: 'var(--muted)', tipo: 'barra', op: 0.35 }]);
+    CH.hover = (x, y) => {
+      const h = hits.find(h => x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1); capa.innerHTML = '';
+      if (!h) return ocultarTip();
+      el('rect', { x: h.x0, y: h.y0 + 3, width: h.x1 - h.x0, height: h.y1 - h.y0 - 6, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5, rx: 2 }, capa);
+      tooltip((h.x0 + h.x1) / 2, h.y0, h.x.v.n, [{ v: `${h.s.v.toFixed(1)} min`, l: `${h.s.e.n} · ${h.s.tipo === 'espera' ? (h.s.e.k === 'ad' ? 'esperando o hidratándose' : 'esperando') : 'siendo atendido'}`, c: ETAPA_COL[h.s.e.k] }, { v: `${Math.round(h.s.v / h.x.tot * 100)}%`, l: 'de su visita' }]);
+    };
+  } else if (MODO === 'campana' || MODO === 'expo') {
+    const d = MODO === 'expo' ? S.arrT.slice(1).map((t, i) => t - S.arrT[i]) : S.done.map(ciclo);
+    if (d.length < 8) return sinDatos();
+    const n = d.length, me = d.reduce((a, v) => a + v, 0) / n, sd = Math.sqrt(d.reduce((a, v) => a + (v - me) ** 2, 0) / (n - 1)), med = Stats.pct(d, 0.5), p90 = Stats.pct(d, 0.9);
+    const top = Math.max(Stats.pct(d, 0.99), MODO === 'expo' ? me * 3 : me + 2.5 * sd), bw = niceStep(top / 22), nb = Math.ceil(top / bw), cnt = Array(nb).fill(0);
+    d.forEach(v => cnt[Math.min(nb - 1, Math.floor(v / bw))]++);
+    const xmax = nb * bw, X = v => Pd.l + v / xmax * (W - Pd.l - Pd.r);
+    const f = MODO === 'expo' ? x => n * bw * Math.exp(-x / me) / me : x => n * bw * Math.exp(-((x - me) ** 2) / (2 * sd * sd)) / (sd * Math.sqrt(2 * Math.PI));
+    const { max, step } = niceMax(Math.max(...cnt, f(MODO === 'expo' ? 0 : me)) * 1.12), Y = v => H - Pd.b - v / max * (H - Pd.t - Pd.b);
+    rejillaY(max, step, Y, MODO === 'expo' ? 'veces' : 'pacientes');
+    if (MODO === 'campana') el('rect', { x: X(Math.max(0, me - sd)), y: Pd.t, width: X(Math.min(xmax, me + sd)) - X(Math.max(0, me - sd)), height: H - Pd.b - Pd.t, fill: 'var(--tIC)', 'fill-opacity': 0.06 }, svg);
+    const col = MODO === 'expo' ? 'var(--tI)' : 'var(--tIC)', bwPx = X(bw) - X(0), barW = Math.min(24, bwPx - 2), hits = [];
+    cnt.forEach((c, i) => { const cx = X(i * bw + bw / 2); if (c) el('path', { d: barraRedonda(cx - barW / 2, Y(c), barW, Y(0) - Y(c)), fill: col }, svg); hits.push({ i, c, cx }); });
+    const lblCada = Math.ceil(nb / 10);
+    for (let i = 0; i <= nb; i += lblCada) txt(svg, fmtN(+(i * bw).toFixed(2)), X(i * bw), H - 12, 11, 'var(--muted)', 'middle');
+    txt(svg, MODO === 'expo' ? 'minutos entre una llegada y la siguiente' : 'minutos en el hospital', W - Pd.r, H - 26, 10.5, 'var(--muted)', 'end');
+    const cv = []; for (let i = 0; i <= 120; i++) cv.push([X(xmax * i / 120), Y(f(xmax * i / 120))]);
+    linea(cv, 'var(--trend)', 2);
+    const mark = (v, t) => { el('line', { x1: X(v), x2: X(v), y1: Pd.t, y2: H - Pd.b, stroke: 'var(--ink)', 'stroke-width': 1 }, svg); txt(svg, t, X(v) + 4, Pd.t + 4, 10.5, 'var(--ink)', 'start', 600); };
+    mark(med, `la mitad: ${med.toFixed(1)} min`);
+    const moda = cnt.indexOf(Math.max(...cnt));
+    if (MODO === 'expo') decir(`En promedio llega un paciente <b>cada ${me.toFixed(1)} min</b> (unos ${(60 / me).toFixed(0)} por hora). La mitad de los pacientes llegó menos de <b>${med.toFixed(1)} min</b> después del anterior. La curva naranja es lo que predice la distribución exponencial: si las barras la siguen, las llegadas son aleatorias como se esperaba.`);
+    else decir(`La mitad de los pacientes sale en menos de <b>${med.toFixed(0)} min</b> y 9 de cada 10 en menos de <b>${p90.toFixed(0)} min</b>. Lo más común es tardar entre <b>${fmtN(moda * bw)} y ${fmtN((moda + 1) * bw)} min</b>. La franja sombreada marca el rango típico (promedio ± desviación: ${Math.max(0, me - sd).toFixed(0)}–${(me + sd).toFixed(0)} min).`);
+    leyenda([{ n: MODO === 'expo' ? 'Veces observadas' : 'Pacientes', c: col, tipo: 'barra' }, { n: MODO === 'expo' ? 'Curva exponencial esperada' : 'Curva normal (campana)', c: 'var(--trend)' }, { n: 'Línea vertical = la mitad de los casos', c: 'var(--ink)' }]);
+    CH.hover = (x) => {
+      const h = hits.reduce((a, b) => Math.abs(b.cx - x) < Math.abs(a.cx - x) ? b : a); capa.innerHTML = '';
+      el('rect', { x: h.cx - bwPx / 2, y: Pd.t, width: bwPx, height: H - Pd.b - Pd.t, fill: 'var(--ink)', 'fill-opacity': 0.05 }, capa);
+      tooltip(h.cx, Y(h.c), `Entre ${fmtN(+(h.i * bw).toFixed(2))} y ${fmtN(+((h.i + 1) * bw).toFixed(2))} min`, [{ v: String(h.c), l: MODO === 'expo' ? (h.c === 1 ? 'vez' : 'veces') : (h.c === 1 ? 'paciente' : 'pacientes'), c: col }, { v: `${Math.round(h.c / n * 100)}%`, l: 'del total' }]);
+    };
+  } else if (MODO === 'dispersion') {
+    const d = S.done; if (d.length < 5) return sinDatos();
+    const { max: xmax, step: xs } = niceMax(Math.max(5, ...d.map(p => p.carga)) * 1.05), { max, step } = niceMax(Math.max(...d.map(ciclo)) * 1.05);
+    const X = v => Pd.l + v / xmax * (W - Pd.l - Pd.r), Y = v => H - Pd.b - v / max * (H - Pd.t - Pd.b);
+    rejillaY(max, step, Y, 'minutos en el hospital');
+    for (let v = 0; v <= xmax + 1e-9; v += xs) txt(svg, fmtN(v), X(v), H - 12, 11, 'var(--muted)', 'middle');
+    txt(svg, 'personas que ya estaban en el hospital al llegar', W - Pd.r, H - 26, 10.5, 'var(--muted)', 'end');
+    const reg = Stats.linreg(d.map(p => p.carga), d.map(ciclo));
+    if (reg) linea([[X(0), Y(Math.max(0, reg.f(0)))], [X(xmax), Y(Math.max(0, Math.min(max, reg.f(xmax))))]], 'var(--ink)', 2, { 'stroke-opacity': 0.7 });
+    for (const p of d) marca(svg, FORMA[p.k], X(p.carga), Y(ciclo(p)), 4, COLOR[p.k], { 'fill-opacity': 0.85 });
+    const fuerza = !reg ? '' : reg.r2 < 0.15 ? 'débil' : reg.r2 < 0.45 ? 'moderada' : 'fuerte';
+    decir(reg ? (reg.b > 0.05 ? `Sí: por cada persona extra que ya estaba en el hospital al llegar, la visita se alarga en promedio <b>${reg.b.toFixed(1)} min</b>. La relación es <b>${fuerza}</b> (R² = ${reg.r2.toFixed(2)}).` : `No se ve que llegar con más gente alargue la visita (relación ${fuerza}, R² = ${reg.r2.toFixed(2)}).`) + ' Cada figura es un paciente; pasa el cursor sobre ella para ver su detalle.' : '');
+    leyenda([...TIPOS.map(t => ({ n: t.n, c: COLOR[t.k], tipo: 'punto ' + FORMA[t.k] })), { n: 'Tendencia', c: 'var(--ink)' }]);
+    CH.hover = (x, y) => {
+      let best = null, bd = 24 * 24;
+      for (const p of d) { const dx = X(p.carga) - x, dy = Y(ciclo(p)) - y, dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = p; } }
+      capa.innerHTML = ''; if (!best) return ocultarTip();
+      marca(capa, FORMA[best.k], X(best.carga), Y(ciclo(best)), 7, COLOR[best.k], { 'stroke-width': 2.5 });
+      tooltip(X(best.carga), Y(ciclo(best)), `Paciente #${best.id} · ${nombreVar(best)}`, [{ v: `${ciclo(best).toFixed(1)} min`, l: 'en el hospital', c: COLOR[best.k] }, { v: String(best.carga), l: 'personas había al llegar' }, { v: hhmm(best.tArr), l: 'hora de llegada' }]);
+    };
+  } else if (MODO === 'poisson') {
+    const w = Math.max(5, +$('win').value || 15), kk = Math.max(0, Math.round(+$('kIn').value || 0)), muNow = lam(S.t) * w / 60;
+    let lo = 0; for (let i = 0; i < kk; i++) lo += pmf(i, muNow);
+    $('pois').innerHTML = `Con la demanda actual (${lam(S.t).toFixed(1)} pac/h) en ${w} min se esperan <b>${muNow.toFixed(1)}</b> llegadas. Probabilidad de que lleguen exactamente ${kk}: <b>${(pmf(kk, muNow) * 100).toFixed(1)}%</b> · ${kk} o más: <b>${((1 - lo) * 100).toFixed(1)}%</b>.`;
+    const a0 = Math.floor(Math.max(P.open, S.t0) / w) * w, a1 = Math.min(P.close, S.t), ven = [];
+    for (let s = a0; s + w <= a1 + 1e-9; s += w) { let c = 0; for (const x of S.arrT) if (x >= s && x < s + w) c++; ven.push({ s, c, mu: muV(s, s + w) }); }
+    if (ven.length < 2) return sinDatos();
+    const { X } = ejeHoras(), { max, step } = niceMax(Math.max(...ven.map(v => Math.max(v.c, v.mu + 2 * Math.sqrt(v.mu)))) * 1.05), Y = v => H - Pd.b - v / max * (H - Pd.t - Pd.b);
+    rejillaY(max, step, Y, `llegadas cada ${w} min`);
+    const bwPx = X(a0 + w) - X(a0), barW = Math.min(24, bwPx - 2), hits = [];
+    for (const v of ven) { el('rect', { x: X(v.s) + 1, y: Y(v.mu + 2 * Math.sqrt(v.mu)), width: bwPx - 2, height: Math.max(0, Y(Math.max(0, v.mu - 2 * Math.sqrt(v.mu))) - Y(v.mu + 2 * Math.sqrt(v.mu))), fill: 'var(--muted)', 'fill-opacity': 0.06 }, svg); }
+    for (const v of ven) { const cx = X(v.s + w / 2); if (v.c) el('path', { d: barraRedonda(cx - barW / 2, Y(v.c), barW, Y(0) - Y(v.c)), fill: 'var(--tIC)' }, svg); hits.push({ v, cx }); }
+    const esp = []; for (const v of ven) { esp.push([X(v.s), Y(v.mu)], [X(v.s + w), Y(v.mu)]); }
+    linea(esp, 'var(--trend)', 2);
+    const tot = ven.reduce((a, v) => a + v.c, 0), totE = ven.reduce((a, v) => a + v.mu, 0), normales = ven.filter(v => Math.abs(v.c - v.mu) <= 2 * Math.sqrt(Math.max(v.mu, 0.5))).length;
+    decir(`Llegaron <b>${tot} pacientes</b> y se esperaban <b>${totE.toFixed(0)}</b> (${tot >= totE ? '+' : ''}${((tot - totE) / Math.max(totE, 1) * 100).toFixed(0)}%). En <b>${Math.round(normales / ven.length * 100)}% de los intervalos</b> la diferencia está dentro de lo normal para llegadas aleatorias (franja gris). Cambia el intervalo y el número de pacientes abajo para calcular probabilidades.`);
+    leyenda([{ n: 'Llegadas reales', c: 'var(--tIC)', tipo: 'barra' }, { n: 'Llegadas esperadas (Poisson)', c: 'var(--trend)' }, { n: 'Rango normal de variación', c: 'var(--muted)', tipo: 'barra', op: 0.25 }]);
+    CH.hover = (x) => {
+      const h = hits.reduce((a, b) => Math.abs(b.cx - x) < Math.abs(a.cx - x) ? b : a); capa.innerHTML = '';
+      el('rect', { x: h.cx - bwPx / 2, y: Pd.t, width: bwPx, height: H - Pd.b - Pd.t, fill: 'var(--ink)', 'fill-opacity': 0.05 }, capa);
+      tooltip(h.cx, Y(Math.max(h.v.c, h.v.mu)), `De ${hhmm(h.v.s)} a ${hhmm(h.v.s + w)}`, [{ v: String(h.v.c), l: h.v.c === 1 ? 'llegó' : 'llegaron', c: 'var(--tIC)' }, { v: h.v.mu.toFixed(1), l: 'se esperaban', c: 'var(--trend)' }]);
+    };
   }
-  $('cleg').innerHTML = ley.join('');
+  if (HOVER && CH.hover) CH.hover(HOVER.x, HOVER.y); else ocultarTip();
 }
 
 // ---------------- Control ----------------
@@ -982,7 +1140,11 @@ $('vel').innerHTML = [[1, '1 s = 1 s'], [5, '1 s = 5 s'], [10, '1 s = 10 s'], [3
   .map(([v, n]) => `<option value="${v}"${v === 60 ? ' selected' : ''}>${n}</option>`).join('');
 $('vel').onchange = e => VEL = +e.target.value / 60;
 $('chkTray').onchange = e => { TRAY = e.target.checked; $('lyTrail').style.display = TRAY ? '' : 'none'; };
-$('selChart').onchange = dibujarGrafica; $('win').oninput = dibujarGrafica; $('kIn').oninput = dibujarGrafica;
+$('win').oninput = dibujarGrafica; $('kIn').oninput = dibujarGrafica;
+construirChips();
+const posGraf = e => { const r = $('chart').getBoundingClientRect(); return { x: (e.clientX - r.left) * (CH.W / r.width), y: (e.clientY - r.top) * (CH.H / r.height) }; };
+$('chart').addEventListener('pointermove', e => { HOVER = posGraf(e); if (CH && CH.hover) CH.hover(HOVER.x, HOVER.y); });
+$('chart').addEventListener('pointerleave', () => { HOVER = null; ocultarTip(); dibujarGrafica(); });
 document.querySelector('.tabs').onclick = e => { const b = e.target.closest('button'); if (!b) return; TAB = b.dataset.tab; document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b)); dibujarTabla(); };
 $('nota').addEventListener('click', e => {
   if (e.target.id !== 'btnCSV') return;
