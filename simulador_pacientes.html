@@ -134,7 +134,7 @@
     <h2><span style="text-transform:none;letter-spacing:0;color:var(--ink);font-size:18px">Simulador de flujo de pacientes</span>
       <span id="cuello" class="bottleneck ok">Flujo estable</span>
       <label style="margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500;display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="chkTray" checked> Mostrar trayectorias</label></h2>
-    <div class="muted sm" style="margin-bottom:8px">Recepción → Baño (recolección de orina o antidoping) → InBody → Consulta. El baño siempre va antes de InBody o consulta. Cada paciente recorre solo las etapas de su visita: si hay lugar libre pasa directo; si no, espera sentado en la sala.</div>
+    <div class="muted sm" style="margin-bottom:8px">Recepción → Baño → InBody → Consulta. Quien pasa al baño lo hace siempre antes de la toma de muestra (InBody o consulta). Cada paciente recorre solo las etapas de su visita: si hay lugar libre pasa directo; si no, espera sentado en la sala.</div>
     <svg id="plano" viewBox="0 0 960 470" role="img" aria-label="Plano del hospital">
       <defs>
         <pattern id="pFloor" width="120" height="24" patternUnits="userSpaceOnUse">
@@ -210,7 +210,7 @@
    Simulador de flujo de pacientes — basado en SPE
    Llegadas Poisson no homogéneas → Recepción → Baño → InBody → Consultorios (según la variante de visita)
    En cada etapa: ¿hay lugar libre? Sí → pasa directo · No → espera sentado en la sala (FIFO)
-   Baño (antes de InBody o consulta): cada paciente va a recolección de orina o a antidoping; si la muestra no alcanza → hidratación y reintento
+   Baño: un % de los pacientes pasa al baño antes de la toma de muestra (InBody o consulta)
    ===================================================================== */
 const $ = id => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -229,14 +229,12 @@ const TIPOS = [
   { k: 'C', n: 'Solo consulta', ib: 0, co: 1 },
   { k: 'IC', n: 'InBody + Consulta', ib: 1, co: 1 },
   { k: 'I', n: 'Solo InBody', ib: 1, co: 0 },
-  { k: 'A', n: 'Solo baño (muestra)', ib: 0, co: 0 },
 ];
 // Todas las vertientes: cada tipo con o sin baño previo, más "solo baño"
 const VAR = [
   { v: 'C', k: 'C', ad: 0, n: 'Solo consulta' }, { v: 'C+AD', k: 'C', ad: 1, n: 'Baño + consulta' },
   { v: 'IC', k: 'IC', ad: 0, n: 'InBody + Consulta' }, { v: 'IC+AD', k: 'IC', ad: 1, n: 'Baño + InBody + consulta' },
   { v: 'I', k: 'I', ad: 0, n: 'Solo InBody' }, { v: 'I+AD', k: 'I', ad: 1, n: 'Baño + InBody' },
-  { v: 'A', k: 'A', ad: 1, n: 'Solo baño (muestra)' },
 ];
 const COLOR = { C: 'var(--tC)', IC: 'var(--tIC)', I: 'var(--tI)', A: 'var(--tA)' };
 const ETA = [   // etapas del recorrido y su zona en el plano [x, ancho]
@@ -249,9 +247,9 @@ const ETK = Object.fromEntries(ETA.map(e => [e.k, e]));
 const DEF = {
   open: 420, close: 1080, base: 15,
   picos: [{ ini: 480, fin: 600, extra: 15 }, { ini: 720, fin: 840, extra: 10 }],   // intervalos [ini, fin) en minutos del día
-  mix: { C: 35, IC: 30, I: 20, A: 15 }, pctAd: 20, pctAD: 50,
+  mix: { C: 40, IC: 35, I: 25 }, pctAd: 20,
   nRec: 2, tRec: 3,
-  nAd: 2, tAd: 8, pFalla: 15, tHidr: 15, maxInt: 3,
+  nAd: 2, tAd: 8, pFalla: 0, tHidr: 0, maxInt: 1,   // sin reintentos de muestra
   nIb: 2, tIb: 5, nCo: 4, tCo: 18,
   cv: 30, meta: { C: 35, IC: 45, I: 20, A: 25 }, metaAd: 15,
 };
@@ -298,10 +296,9 @@ function lam(m) {
 function lmax() { let x = 0; for (let m = P.open; m < P.close; m += 5) x = Math.max(x, lam(m)); return Math.max(x, 1e-6); }
 function demandaDia() { let s = 0; for (let m = P.open; m < P.close; m += 3) s += lam(m) * 3 / 60; return s; }
 function picoAct(m) { return P.picos.find(p => m >= p.ini && m < p.fin); }
-// Intentos esperados en el baño por paciente: 1 + p + p² + … (hasta el máximo de intentos)
-const intentosEsp = () => { const p = Math.min(0.99, P.pFalla / 100); let s = 0; for (let n = 0; n < P.maxInt; n++) s += p ** n; return s; };
+const intentosEsp = () => 1;   // cada paciente usa el baño una vez
 function fracciones() {
-  const m = norm(), ad = m.A + (m.C + m.IC + m.I) * P.pctAd / 100;
+  const m = norm(), ad = P.pctAd / 100;   // % general de pacientes que pasan al baño
   return { rec: 1, ad, ib: m.IC + m.I, co: m.C + m.IC };
 }
 
@@ -340,9 +337,7 @@ function llegada(ta) {
   const p = { id: ++S.seq, k: tp.k, v, ad, ib: tp.ib, co: tp.co, sexo: Math.random() < 0.5 ? 'M' : 'H',   // solo para variar la apariencia
     tArr: ta,
     ruta: ['rec', ...(ad ? ['ad'] : []), ...(tp.ib ? ['ib'] : []), ...(tp.co ? ['co'] : [])], idx: 0,
-    q: {}, i: {}, f: {}, w: {}, s: {}, directo: {}, intentos: 0, hidT: 0, aus: 0, carga: S.sistema.size,
-    motivo: ad ? (Math.random() < P.pctAD / 100 ? 'AD' : 'OR') : null };   // al baño: antidoping o recolección de orina
-  if (p.motivo) S.motivo[p.motivo]++;
+    q: {}, i: {}, f: {}, w: {}, s: {}, directo: {}, intentos: 0, hidT: 0, aus: 0, carga: S.sistema.size };
   S.arr[v]++; S.arrT.push(ta); binFranja(ta).n++; S.sistema.add(p);
   crearEnt(p);
   entrar(p, 'rec', ta);
@@ -371,12 +366,6 @@ function terminar(k) {
     if (!x || S.t < x.end) return;
     s.srv[i] = null; const p = x.p;
     p.s[k] = (p.s[k] || 0) + (x.end - x.ini); p.f[k] = x.end;
-    if (k === 'ad') {
-      p.intentos++;
-      const falla = Math.random() < P.pFalla / 100;
-      if (falla && p.intentos < P.maxInt) { p.hidrata = true; p.hidIni = x.end; p.hidFin = x.end + samp(P.tHidr); S.hid.push(p); S.reint++; return; }   // muestra insuficiente → toma agua y reintenta
-      if (falla) { p.sinMuestra = true; S.sinMuestra++; }
-    }
     avanzar(p, x.end);
   });
 }
@@ -484,7 +473,7 @@ function construirPlano() {
   // Sala de espera
   el('rect', { x: 20, y: 224, width: 920, height: 232, rx: 12, fill: 'var(--zona)', stroke: 'var(--line)', filter: 'url(#sombra)' }, g);
   txt(g, 'Sala de espera', 32, 244, 13, 'var(--ink)', 'start', 700);
-  txt(g, 'Los pacientes esperan sentados su turno · vaso de agua = hidratándose para repetir la muestra', 928, 244, 10.5, 'var(--muted)', 'end');
+  txt(g, 'Los pacientes esperan sentados su turno', 928, 244, 10.5, 'var(--muted)', 'end');
   for (const e of ETA) {
     REF.sala[e.k] = txt(g, '', e.x + 12, 264, 10.5, 'var(--muted)', 'start', 600);
     const c = seatCols(e);
@@ -503,7 +492,7 @@ function crearEnt(p) {
   e.p1 = el('line', { x1: -2.5, y1: 9, x2: -2.5, y2: 14, stroke: '#3a3f4a', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
   e.p2 = el('line', { x1: 2.5, y1: 9, x2: 2.5, y2: 14, stroke: '#3a3f4a', 'stroke-width': 2.4, 'stroke-linecap': 'round' }, g);
   persona(g, 0, 0, c, PIEL[p.id % 6], PELO[p.id % 5], p.sexo);
-  if (p.motivo) el('circle', { cx: 6.5, cy: -9, r: 3.4, fill: p.motivo === 'AD' ? 'var(--tA)' : 'var(--orina)', stroke: '#fff', 'stroke-width': 1.2 }, g);   // va al baño: morado = antidoping, amarillo = orina
+  if (p.ad) el('circle', { cx: 6.5, cy: -9, r: 3.4, fill: 'var(--tA)', stroke: '#fff', 'stroke-width': 1.2 }, g);   // punto morado: pasa al baño
   e.vaso = el('path', { d: 'M-13,-2 h7 l-1,9 h-5 Z', fill: 'var(--agua)', stroke: '#fff', 'stroke-width': 0.8, opacity: 0 }, g);
   e.tEl = el('polyline', { fill: 'none', stroke: c, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'stroke-opacity': 0.45 }, $('lyTrail'));
   e.pEl = el('polyline', { fill: 'none', stroke: c, 'stroke-width': 1.6, 'stroke-dasharray': '2 5', 'stroke-linecap': 'round', 'stroke-opacity': 0.7 }, $('lyTrail'));
@@ -560,7 +549,7 @@ function dibujarDinamico() {
     const s = S.st[e.k], ocup = s.srv.filter(Boolean).length, d = S.dec[e.k], tot = d.directo + d.espera, enSala = s.q.length;
     REF.titulo[e.k].textContent = `${e.n} · ${ocup}/${s.srv.length} ocupados`;
     REF.sub[e.k].textContent = e.k === 'ad'
-      ? `${S.motivo.OR} orina · ${S.motivo.AD} antidoping · ${S.reint} reintento${S.reint === 1 ? '' : 's'}`
+      ? (tot ? `${Math.round(d.directo / tot * 100)}% pasó directo · ${enSala} en sala` : 'Sin pacientes todavía')
       : tot ? `${Math.round(d.directo / tot * 100)}% pasó directo · ${enSala} en sala` : 'Sin pacientes todavía';
     s.srv.forEach((x, i) => {
       const r = REF.srv[e.k][i]; if (!r) return;
@@ -568,7 +557,7 @@ function dibujarDinamico() {
       r.prog.setAttribute('width', x ? r.w * Math.min(1, (S.t - x.ini) / (x.end - x.ini)) : 0); if (x) r.prog.style.fill = COLOR[x.p.k];
     });
     const cap = seatCols(e) * 5, extra = e.k === 'ad' ? S.hid.length : 0, aus = s.q.length - enSala;
-    REF.sala[e.k].textContent = `Esperando ${e.e}: ${enSala}${aus ? ` (+${aus} en el baño)` : ''}${extra ? ` · ${extra} hidratándose` : ''}`;
+    REF.sala[e.k].textContent = `Esperando ${e.e}: ${enSala}${aus ? ` (+${aus} en el baño)` : ''}`;
     REF.sala[e.k].style.fill = enSala === 0 ? 'var(--muted)' : enSala >= s.srv.length * 2 ? 'var(--bad)' : 'var(--warn)';
     REF.pie[e.k].textContent = s.q.length + extra > cap ? `+${s.q.length + extra - cap} de pie` : '';
   }
@@ -704,15 +693,14 @@ function infoPicos() {
 // ---------------- Zona 2: parámetros ----------------
 const CFG = [
   ['Demanda', [['base', 'Pacientes por hora (base)', 0, 500, 1]]],
-  ['Tipo de visita (%)', [['mix.C', '% Solo consulta', 0, 100, 1], ['mix.IC', '% InBody + Consulta', 0, 100, 1], ['mix.I', '% Solo InBody', 0, 100, 1], ['mix.A', '% Solo baño (muestra)', 0, 100, 1],
-    ['pctAd', '% de consulta / InBody que pasa al baño antes', 0, 100, 1], ['pctAD', '% de los que van al baño que es antidoping (resto: orina)', 0, 100, 1]]],
+  ['Tipo de visita (%)', [['mix.C', '% Solo consulta', 0, 100, 1], ['mix.IC', '% InBody + Consulta', 0, 100, 1], ['mix.I', '% Solo InBody', 0, 100, 1],
+    ['pctAd', '% de pacientes que pasan al baño antes de la toma de muestra', 0, 100, 1]]],
   ['Recepción', [['nRec', 'Número de recepciones', 1, 30, 1], ['tRec', 'Atención por paciente (min)', 0.5, 60, 0.5]]],
-  ['Baño (antes de InBody o consulta)', [['nAd', 'Número de baños', 1, 8, 1], ['tAd', 'Tiempo en el baño (min)', 1, 60, 0.5],
-    ['pFalla', '% sin muestra suficiente', 0, 90, 1], ['tHidr', 'Hidratación antes de reintentar (min)', 1, 120, 1], ['maxInt', 'Intentos máximos', 1, 5, 1]]],
+  ['Baño (antes de InBody o consulta)', [['nAd', 'Número de baños', 1, 8, 1], ['tAd', 'Tiempo en el baño (min)', 1, 60, 0.5]]],
   ['Equipos InBody', [['nIb', 'Número de equipos InBody', 1, 30, 1], ['tIb', 'Duración InBody (min)', 1, 60, 0.5]]],
   ['Consultorios', [['nCo', 'Número de consultorios', 1, 60, 1], ['tCo', 'Duración consulta (min)', 1, 120, 1]]],
 ];
-const CAPACIDAD = ['nRec', 'nIb', 'nCo', 'nAd', 'maxInt'];
+const CAPACIDAD = ['nRec', 'nIb', 'nCo', 'nAd'];
 function construirCfg() {
   $('cfg').innerHTML = CFG.map((g, i) => `<div class="card"><h3>${g[0]}</h3>${g[1].map(([k, l, mn, mx, st]) =>
     `<div class="fld"><label for="f_${k}">${l}</label><input type="number" id="f_${k}" data-k="${k}" min="${mn}" max="${mx}" step="${st}" value="${getP(k)}"></div>`).join('')}<div class="der" id="der${i}"></div></div>`).join('');
@@ -721,15 +709,15 @@ function construirCfg() {
 function derivados() {
   const m = norm(), fr = fracciones(), pk = LM, cap = (n, t) => n * 60 / t, E = intentosEsp();
   const rho = (d, c) => { if (!c) return '<b style="color:var(--bad)">sin capacidad</b>'; const r = d / c; return `<b style="color:var(--${r >= 1 ? 'bad' : r >= 0.8 ? 'warn' : 'ok'})">${Math.round(r * 100)}%</b>`; };
-  const sum = P.mix.C + P.mix.IC + P.mix.I + P.mix.A;
+  const sum = P.mix.C + P.mix.IC + P.mix.I;
   const D = [
     `Llegadas con distribución de Poisson, tasa λ(t)<br>Demanda máxima: ${pk.toFixed(0)} pacientes/h<br>Pacientes esperados en el día: ${demandaDia().toFixed(0)}`,
-    `Suma: <b style="color:var(--${sum === 100 ? 'ok' : 'warn'})">${sum}%</b>${sum === 100 ? '' : ' (se normaliza a 100%)'}<br>Pasan al baño: ${pc(fr.ad)} (${P.pctAD}% antidoping · ${100 - P.pctAD}% orina)<br>InBody: ${pc(fr.ib)} · consulta: ${pc(fr.co)}`,
+    `Suma: <b style="color:var(--${sum === 100 ? 'ok' : 'warn'})">${sum}%</b>${sum === 100 ? '' : ' (se normaliza a 100%)'}<br>Pasan al baño: ${pc(fr.ad)} de los pacientes<br>InBody: ${pc(fr.ib)} · consulta: ${pc(fr.co)}`,
     `Capacidad: ${cap(P.nRec, P.tRec).toFixed(0)} pacientes/h<br>Ocupación en pico: ${rho(pk, cap(P.nRec, P.tRec))}`,
-    `Intentos promedio por paciente: ${E.toFixed(2)}<br>Capacidad: ${cap(P.nAd, P.tAd).toFixed(1)} usos/h<br>Demanda pico: ${(pk * fr.ad * E).toFixed(1)}/h · ocupación ${rho(pk * fr.ad * E, cap(P.nAd, P.tAd))}`,
+    `Capacidad: ${cap(P.nAd, P.tAd).toFixed(1)} usos/h<br>Demanda pico: ${(pk * fr.ad * E).toFixed(1)}/h · ocupación ${rho(pk * fr.ad * E, cap(P.nAd, P.tAd))}`,
     `Capacidad: ${cap(P.nIb, P.tIb).toFixed(0)} estudios/h<br>Demanda pico: ${(pk * fr.ib).toFixed(0)}/h · ocupación ${rho(pk * fr.ib, cap(P.nIb, P.tIb))}`,
     `Capacidad: ${cap(P.nCo, P.tCo).toFixed(0)} consultas/h<br>Demanda pico: ${(pk * fr.co).toFixed(0)}/h · ocupación ${rho(pk * fr.co, cap(P.nCo, P.tCo))}`,
-    `Tiempo mínimo sin esperas:<br>Consulta ${(P.tRec + P.tCo).toFixed(0)} · InBody + Consulta ${(P.tRec + P.tIb + P.tCo).toFixed(0)} · InBody ${(P.tRec + P.tIb).toFixed(0)} · Solo baño ${(P.tRec + P.tAd).toFixed(0)} min (con baño previo suma ${P.tAd} min)`,
+    `Tiempo mínimo sin esperas:<br>Consulta ${(P.tRec + P.tCo).toFixed(0)} · InBody + Consulta ${(P.tRec + P.tIb + P.tCo).toFixed(0)} · InBody ${(P.tRec + P.tIb).toFixed(0)} min · el baño suma ${P.tAd} min`,
   ];
   D.forEach((s, i) => { const e = $('der' + i); if (e) e.innerHTML = s; });
   if (S) dibujarTiempos();
@@ -770,8 +758,8 @@ function dibujarTiempos() {
     <tr><th>Variante de visita</th>${esc.map(() => '<th>Espera prom. (min)</th><th>Tiempo de ciclo (min)</th>').join('')}<th>Espera prom.</th><th>Tiempo de ciclo</th><th>Meta</th></tr></thead><tbody>${filas.join('')}${rhoF}</tbody>`;
   const fr = fracciones(), E = intentosEsp();
   const caps = [['Recepción', P.nRec * 60 / P.tRec / fr.rec], ['Baño', fr.ad ? P.nAd * 60 / P.tAd / (fr.ad * E) : Infinity], ['InBody', fr.ib ? P.nIb * 60 / P.tIb / fr.ib : Infinity], ['Consultorios', fr.co ? P.nCo * 60 / P.tCo / fr.co : Infinity]].sort((a, b) => a[1] - b[1]);
-  $('notaTiempos').innerHTML = `<b>Espera promedio</b> = tiempo sin ser atendido (salas de cada etapa + hidratación por reintentos de muestra). <b>Tiempo de ciclo</b> = desde que entra hasta que sale. ` +
-    `Baño: ${E.toFixed(2)} intentos promedio por paciente con ${P.pFalla}% de muestras insuficientes y hasta ${P.maxInt} intentos. Cálculo por etapa como cola M/G/c (Erlang C con ajuste de Allen–Cunneen por variabilidad de tiempos). En rojo: supera la meta.` +
+  $('notaTiempos').innerHTML = `<b>Espera promedio</b> = tiempo sin ser atendido (suma de las salas de cada etapa). <b>Tiempo de ciclo</b> = desde que entra hasta que sale. ` +
+    `Cálculo por etapa como cola M/G/c (Erlang C con ajuste de Allen–Cunneen por variabilidad de tiempos). En rojo: supera la meta.` +
     `<br><b>Ritmo del cuello de botella:</b> ${caps[0][0]}: alcanza para ${caps[0][1].toFixed(0)} pacientes/h en total, es decir <b>1 paciente cada ${(60 / caps[0][1]).toFixed(2)} min</b>. Si llegan más que eso, la sala se llena sin límite.`;
 }
 
@@ -779,7 +767,7 @@ function dibujarTiempos() {
 function dibujarLive() {
   const d = S.done, n = d.length, av = f => n ? (d.reduce((a, p) => a + f(p), 0) / n).toFixed(1) + ' min' : '—';
   const it = [['En el hospital', S.sistema.size], ['Atendidos', n], ['Espera promedio', av(esperaTot)], ['Tiempo de ciclo prom.', av(ciclo)],
-    ['Dentro de meta', n ? Math.round(d.filter(p => ciclo(p) <= meta(p)).length / n * 100) + '%' : '—'], ['Baño: reintentos · sin muestra', `${S.reint} · ${S.sinMuestra}`]];
+    ['Dentro de meta', n ? Math.round(d.filter(p => ciclo(p) <= meta(p)).length / n * 100) + '%' : '—'], ['Pasaron por el baño', `${d.filter(p => p.ad).length} de ${n}`]];
   $('live').innerHTML = it.map(([k, v]) => `<div><b>${v}</b><span>${k}</span></div>`).join('');
 }
 
@@ -798,15 +786,15 @@ function dibujarTabla() {
     const rows = grupos.map(g => {
       const d = S.done.filter(g.f), sis = [...S.sistema].filter(g.f).length, est = k => { const x = d.filter(p => usa(p, k)); return x.length ? f1(prom(x, p => wk(p, k))) : '—'; };
       return `<tr class="${g.tot || g.sub ? 't' : ''}"><td>${g.k ? swCol(g.k) : ''}${g.n}</td><td>${g.arr}</td><td>${sis}</td><td>${d.length}</td><td>${est('rec')}</td><td>${est('ad')}</td><td>${est('ib')}</td><td>${est('co')}</td>
-        <td>${d.length ? pc(d.filter(p => p.ruta.every(k => p.directo[k]) && (!p.ad || p.intentos === 1)).length / d.length) : '—'}</td>
+        <td>${d.length ? pc(d.filter(p => p.ruta.every(k => p.directo[k])).length / d.length) : '—'}</td>
         <td>${f1(prom(d, ciclo))}</td><td>${f1(Stats.pct(d.map(ciclo), 0.9))}</td><td>${d.length ? pill(d.filter(p => ciclo(p) <= meta(p)).length / d.length) : '—'}</td></tr>`;
     }).join('');
     tb.innerHTML = `<thead><tr><th>Variante de visita</th><th>Llegadas</th><th>En hospital</th><th>Atendidos</th><th>Espera recepción</th><th>Espera baño</th><th>Espera InBody</th><th>Espera consulta</th><th>Sin esperar</th><th>Tiempo de ciclo</th><th>P90</th><th>Dentro de meta</th></tr></thead><tbody>${rows}</tbody>`;
     const u = k => S.u[k].c ? Math.round(S.u[k].b / S.u[k].c * 100) + '%' : '—';
     const horas = (S.t - S.t0) / 60, n = S.done.length, lamO = grupos[grupos.length - 1].arr / Math.max(horas, 1e-9), W = n ? prom(S.done, ciclo) / 60 : 0, L = S.areaL / Math.max(S.t - S.t0, 1e-9);
     const adD = S.done.filter(p => p.ad);
-    $('nota').innerHTML = `Tiempos en minutos. Ocupación promedio: recepción ${u('rec')} · baño ${u('ad')} · InBody ${u('ib')} · consultorios ${u('co')}. "Sin esperar" = pasó directo en todas sus etapas y dio muestra al primer intento.` +
-      (adD.length ? `<br>Baño: ${adD.length} pacientes (${adD.filter(p => p.motivo === 'OR').length} orina · ${adD.filter(p => p.motivo === 'AD').length} antidoping) · ${pc(adD.filter(p => p.intentos === 1 && !p.sinMuestra).length / adD.length)} con muestra al primer intento · ${S.reint} reintentos · ${S.sinMuestra} sin muestra tras ${P.maxInt} intentos · hidratación promedio ${f1(prom(adD, p => p.hidT))} min.` : '') +
+    $('nota').innerHTML = `Tiempos en minutos. Ocupación promedio: recepción ${u('rec')} · baño ${u('ad')} · InBody ${u('ib')} · consultorios ${u('co')}. "Sin esperar" = pasó directo en todas sus etapas.` +
+      (adD.length ? `<br>Baño: ${adD.length} pacientes pasaron antes de su toma de muestra · espera promedio ${f1(prom(adD, p => wk(p, 'ad')))} min.` : '') +
       (horas > 0.25 && n ? `<br>Ley de Little <b>L = λ · W</b>: L observado = <b>${L.toFixed(1)}</b> pacientes en el hospital · λ = ${lamO.toFixed(1)}/h × W = ${(W * 60).toFixed(1)} min → <b>${(lamO * W).toFixed(1)}</b>.` : '');
   } else if (TAB === 'franja') {
     const filas = [], w = o => o.n ? f1(o.s / o.n) : '—';
@@ -820,26 +808,26 @@ function dibujarTabla() {
     $('nota').innerHTML = 'Llegadas esperadas por franja = <b>λ(t) × 0.5 h</b>. Las esperas (min) se agrupan por la franja en que <b>llegó</b> el paciente: así se ve qué hora de llegada sufre más la saturación.';
   } else if (TAB === 'etapas') {
     const cols = [['Espera recepción', p => wk(p, 'rec')], ['Recepción', p => sk(p, 'rec')], ['Espera baño', p => usa(p, 'ad') ? wk(p, 'ad') : undefined], ['Baño', p => usa(p, 'ad') ? sk(p, 'ad') : undefined],
-      ['Hidratación', p => usa(p, 'ad') ? p.hidT : undefined], ['Espera InBody', p => usa(p, 'ib') ? wk(p, 'ib') : undefined], ['InBody', p => usa(p, 'ib') ? sk(p, 'ib') : undefined],
+      ['Espera InBody', p => usa(p, 'ib') ? wk(p, 'ib') : undefined], ['InBody', p => usa(p, 'ib') ? sk(p, 'ib') : undefined],
       ['Espera consulta', p => usa(p, 'co') ? wk(p, 'co') : undefined], ['Consulta', p => usa(p, 'co') ? sk(p, 'co') : undefined], ['Espera total', esperaTot], ['Tiempo de ciclo', ciclo]];
     tb.innerHTML = `<thead><tr><th>Variante de visita</th><th>Pacientes</th>${cols.map(([n]) => `<th>${n}</th>`).join('')}</tr></thead><tbody>${grupos.map(g => {
       const d = S.done.filter(g.f); return `<tr class="${g.tot || g.sub ? 't' : ''}"><td>${g.k ? swCol(g.k) : ''}${g.n}</td><td>${d.length}</td>${cols.map(([, f]) => `<td>${f1(prom(d, f))}</td>`).join('')}</tr>`; }).join('')}</tbody>`;
-    $('nota').innerHTML = 'Promedios en minutos de los pacientes atendidos. <b>Tiempo de ciclo = Σ (espera + atención) + hidratación</b> en las etapas de su visita.';
+    $('nota').innerHTML = 'Promedios en minutos de los pacientes atendidos. <b>Tiempo de ciclo = Σ (espera + atención)</b> en las etapas de su visita.';
   } else if (TAB === 'reg') {
     const hm = v => v === undefined ? '—' : hms(v), mn = v => isFinite(v) ? v.toFixed(1) : '—', ult = S.done.slice(-150).reverse();
-    tb.innerHTML = `<thead><tr><th>#</th><th>Variante</th><th>Llegada</th><th>Inicio recepción</th><th>Fin recepción</th><th>Motivo baño</th><th>Inicio baño</th><th>Fin baño</th><th>Intentos</th><th>Inicio InBody</th><th>Fin InBody</th><th>Inicio consulta</th><th>Fin consulta</th><th>Salida</th><th>Decisión</th><th>Espera total</th><th>Tiempo de ciclo</th></tr></thead><tbody>${ult.map(p => {
+    tb.innerHTML = `<thead><tr><th>#</th><th>Variante</th><th>Llegada</th><th>Inicio recepción</th><th>Fin recepción</th><th>Inicio baño</th><th>Fin baño</th><th>Inicio InBody</th><th>Fin InBody</th><th>Inicio consulta</th><th>Fin consulta</th><th>Salida</th><th>Decisión</th><th>Espera total</th><th>Tiempo de ciclo</th></tr></thead><tbody>${ult.map(p => {
       const dir = p.ruta.every(k => p.directo[k]);
-      return `<tr><td>${p.id}</td><td style="text-align:left">${swCol(p.k)}${nombreVar(p)}</td><td>${hm(p.tArr)}</td><td>${hm(p.i.rec)}</td><td>${hm(p.f.rec)}</td><td>${p.motivo === 'AD' ? 'Antidoping' : p.motivo === 'OR' ? 'Orina' : '—'}</td><td>${hm(p.i.ad)}</td><td>${hm(p.f.ad)}</td>
-        <td>${p.ad ? p.intentos + (p.sinMuestra ? ' <span class="pill bad">sin muestra</span>' : '') : '—'}</td><td>${hm(p.i.ib)}</td><td>${hm(p.f.ib)}</td><td>${hm(p.i.co)}</td><td>${hm(p.f.co)}</td><td>${hm(p.tF)}</td>
+      return `<tr><td>${p.id}</td><td style="text-align:left">${swCol(p.k)}${nombreVar(p)}</td><td>${hm(p.tArr)}</td><td>${hm(p.i.rec)}</td><td>${hm(p.f.rec)}</td><td>${hm(p.i.ad)}</td><td>${hm(p.f.ad)}</td>
+        <td>${hm(p.i.ib)}</td><td>${hm(p.f.ib)}</td><td>${hm(p.i.co)}</td><td>${hm(p.f.co)}</td><td>${hm(p.tF)}</td>
         <td>${dir ? '<span class="pill ok">Pasó directo</span>' : '<span class="pill warn">Esperó en sala</span>'}</td><td>${mn(esperaTot(p))}</td><td><b style="color:${ciclo(p) > meta(p) ? 'var(--bad)' : 'inherit'}">${mn(ciclo(p))}</b></td></tr>`; }).join('')}</tbody>`;
-    $('nota').innerHTML = `Últimos ${ult.length} de ${S.done.length} pacientes atendidos (más reciente arriba; en rojo los que superan su meta). Baño: "Inicio" = primer intento, "Fin" = último intento. <button id="btnCSV">⬇ Descargar registro completo (CSV)</button>`;
+    $('nota').innerHTML = `Últimos ${ult.length} de ${S.done.length} pacientes atendidos (más reciente arriba; en rojo los que superan su meta). <button id="btnCSV">⬇ Descargar registro completo (CSV)</button>`;
   } else {
     const fr = fracciones(), lMed = demandaDia() / ((P.close - P.open) / 60), E = intentosEsp();
     const mmc = (l, mu, c) => { if (c <= 0) return { rho: Infinity, pw: 1, wq: Infinity }; const rho = l / (c * mu); if (rho >= 1) return { rho, pw: 1, wq: Infinity }; const pw = Stats.erlangC(l, mu, c); return { rho, pw, wq: pw / (c * mu - l) * 60 }; };
     const wf = v => isFinite(v) ? v.toFixed(2) : '∞ (inestable)';
     const nodos = [
       { n: 'Recepción', k: 'rec', c: P.nRec, t: P.tRec, f: 1, cap: `${P.nRec} recepciones` },
-      { n: 'Baño (incluye reintentos)', k: 'ad', c: P.nAd, t: P.tAd, f: fr.ad * E, cap: `${P.nAd} baños` },
+      { n: 'Baño', k: 'ad', c: P.nAd, t: P.tAd, f: fr.ad * E, cap: `${P.nAd} baños` },
       { n: 'InBody', k: 'ib', c: P.nIb, t: P.tIb, f: fr.ib, cap: `${P.nIb} equipos` },
       { n: 'Consultorios', k: 'co', c: P.nCo, t: P.tCo, f: fr.co, cap: `${P.nCo} consultorios` },
     ];
@@ -971,7 +959,7 @@ function dibujarGrafica() {
     };
   } else if (MODO === 'colas') {
     const sr = S.serie; if (sr.length < 3) return sinDatos();
-    const { X } = ejeHoras(), ser = ETA.map(e => ({ k: e.k, n: e.k === 'ad' ? 'Baño (incluye hidratación)' : e.n, c: ETAPA_COL[e.k], f: s => s[e.k] + (e.k === 'ad' ? s.hid : 0) }));
+    const { X } = ejeHoras(), ser = ETA.map(e => ({ k: e.k, n: e.n, c: ETAPA_COL[e.k], f: s => s[e.k] + (e.k === 'ad' ? s.hid : 0) }));
     const vis = ser.filter(s => !OCULTAS.has(s.k)), st = Math.max(1, Math.floor(sr.length / 500)), datos = sr.filter((_, i) => i % st === 0 || i === sr.length - 1);
     const { max, step } = niceMax(Math.max(4, ...datos.flatMap(r => vis.map(s => s.f(r))))), Y = v => H - Pd.b - v / max * (H - Pd.t - Pd.b);
     rejillaY(max, step, Y, 'personas esperando');
@@ -1019,7 +1007,7 @@ function dibujarGrafica() {
       const h = hits.find(h => x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1); capa.innerHTML = '';
       if (!h) return ocultarTip();
       el('rect', { x: h.x0, y: h.y0 + 3, width: h.x1 - h.x0, height: h.y1 - h.y0 - 6, fill: 'none', stroke: 'var(--ink)', 'stroke-width': 1.5, rx: 2 }, capa);
-      tooltip((h.x0 + h.x1) / 2, h.y0, h.x.v.n, [{ v: `${h.s.v.toFixed(1)} min`, l: `${h.s.e.n} · ${h.s.tipo === 'espera' ? (h.s.e.k === 'ad' ? 'esperando o hidratándose' : 'esperando') : 'siendo atendido'}`, c: ETAPA_COL[h.s.e.k] }, { v: `${Math.round(h.s.v / h.x.tot * 100)}%`, l: 'de su visita' }]);
+      tooltip((h.x0 + h.x1) / 2, h.y0, h.x.v.n, [{ v: `${h.s.v.toFixed(1)} min`, l: `${h.s.e.n} · ${h.s.tipo === 'espera' ? 'esperando' : 'siendo atendido'}`, c: ETAPA_COL[h.s.e.k] }, { v: `${Math.round(h.s.v / h.x.tot * 100)}%`, l: 'de su visita' }]);
     };
   } else if (MODO === 'campana' || MODO === 'expo') {
     const d = MODO === 'expo' ? S.arrT.slice(1).map((t, i) => t - S.arrT[i]) : S.done.map(ciclo);
@@ -1149,16 +1137,16 @@ document.querySelector('.tabs').onclick = e => { const b = e.target.closest('but
 $('nota').addEventListener('click', e => {
   if (e.target.id !== 'btnCSV') return;
   const hm = v => v === undefined ? '' : hms(v), mn = v => isFinite(v) ? v.toFixed(2) : '';
-  const cols = ['id', 'variante', 'llegada', 'inicio_recepcion', 'fin_recepcion', 'motivo_bano', 'inicio_bano', 'fin_bano', 'intentos_bano', 'sin_muestra', 'hidratacion_min', 'inicio_inbody', 'fin_inbody', 'inicio_consulta', 'fin_consulta', 'salida',
+  const cols = ['id', 'variante', 'llegada', 'inicio_recepcion', 'fin_recepcion', 'inicio_bano', 'fin_bano', 'inicio_inbody', 'fin_inbody', 'inicio_consulta', 'fin_consulta', 'salida',
     'decision', 'espera_recepcion_min', 'espera_bano_min', 'espera_inbody_min', 'espera_consulta_min', 'espera_total_min', 'tiempo_ciclo_min'];
-  const filas = S.done.map(p => [p.id, p.v, hm(p.tArr), hm(p.i.rec), hm(p.f.rec), p.motivo === 'AD' ? 'antidoping' : p.motivo === 'OR' ? 'orina' : '', hm(p.i.ad), hm(p.f.ad), p.ad ? p.intentos : '', p.sinMuestra ? 'si' : '', p.ad ? mn(p.hidT) : '', hm(p.i.ib), hm(p.f.ib), hm(p.i.co), hm(p.f.co), hm(p.tF),
+  const filas = S.done.map(p => [p.id, p.v, hm(p.tArr), hm(p.i.rec), hm(p.f.rec), hm(p.i.ad), hm(p.f.ad), hm(p.i.ib), hm(p.f.ib), hm(p.i.co), hm(p.f.co), hm(p.tF),
     p.ruta.every(k => p.directo[k]) ? 'paso_directo' : 'espero_en_sala', mn(wk(p, 'rec')), usa(p, 'ad') ? mn(wk(p, 'ad')) : '', usa(p, 'ib') ? mn(wk(p, 'ib')) : '', usa(p, 'co') ? mn(wk(p, 'co')) : '', mn(esperaTot(p)), mn(ciclo(p))].join(','));
   const blob = new Blob(['﻿' + [cols.join(','), ...filas].join('\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'registro_pacientes.csv'; a.click(); URL.revokeObjectURL(a.href);
 });
 window.addEventListener('resize', () => { dibujarGrafica(); dibujarDemanda(); });
 $('leg').innerHTML = TIPOS.map(t => `<span><i class="sw" style="background:${COLOR[t.k]};border-radius:50%"></i>${t.n}</span>`).join('') +
-  '<span><i class="sw" style="background:var(--tA);border-radius:50%;border:2px solid #fff;outline:1px solid var(--line)"></i>punto en la cabeza = pasa al baño: morado antidoping, amarillo recolección de orina</span><span>vaso de agua = hidratándose para repetir la muestra</span>' +
+  '<span><i class="sw" style="background:var(--tA);border-radius:50%;border:2px solid #fff;outline:1px solid var(--line)"></i>punto morado en la cabeza = pasa al baño antes de la toma de muestra</span>' +
   '<span>Estela = camino recorrido · línea punteada = camino que le falta · halo rojo = ya superó su meta · el color en cada lugar indica a quién se atiende y la barra su avance</span>';
 $('open').value = hhmm(P.open); $('close').value = hhmm(P.close); $('ini').value = hhmm(P.open);
 
